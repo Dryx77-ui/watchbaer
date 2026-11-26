@@ -73,8 +73,8 @@ h1 span{color:var(--acc)}
 #list.v3{max-width:760px}
 #list.v2{grid-template-columns:repeat(2,minmax(0,1fr))}
 #list.v3{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
-.card{position:relative;display:grid;align-content:start;grid-template-columns:72px minmax(0,1fr);gap:14px;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:12px}
-.card .poster{display:block;width:72px;height:108px;border-radius:10px;object-fit:cover;background:#2c3140}
+.card{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;position:relative;display:grid;align-content:start;grid-template-columns:72px minmax(0,1fr);gap:14px;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:12px}
+.card .poster{-webkit-touch-callout:none;-webkit-user-drag:none;user-select:none;pointer-events:none;display:block;width:72px;height:108px;border-radius:10px;object-fit:cover;background:#2c3140}
 .head{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
 .ttl{font-weight:700;font-size:17px;line-height:1.25;margin:0}
 .when{flex:none;color:var(--mute);font-size:11px;line-height:1.2;white-space:nowrap}
@@ -105,7 +105,9 @@ h1 span{color:var(--acc)}
 .acts .pri{background:var(--acc);border-color:var(--acc);color:#2a1c00}
 .err{color:var(--bad);font-size:13px;margin-top:6px}
 /* 2 und 3 Spalten: Poster oben */
-#list.v2 .card,#list.v3 .card,#preview .card.grid{grid-template-columns:minmax(0,1fr);gap:10px}
+#list.v2 .card,#list.v3 .card{display:flex;flex-direction:column;gap:10px}
+#list.v2 .card>div,#list.v3 .card>div{flex:1;display:flex;flex-direction:column}
+#list.v2 .foot,#list.v3 .foot{margin-top:auto;padding-top:2px}
 #list.v2 .card .poster,#list.v3 .card .poster{width:100%;height:auto;aspect-ratio:2/3}
 #list.v2 .head,#list.v3 .head{flex-direction:column;gap:2px}
 #list.v2 .when,#list.v3 .when{display:block;margin-top:2px}
@@ -119,8 +121,10 @@ h1 span{color:var(--acc)}
 #list.v3 .acts button{padding:0 10px;font-size:12px;min-height:34px}
 @media (max-width:599px){#views button[data-v="3"]{display:none}}
 @media (min-width:600px){#views button[data-v="2"]{display:none}}
-.sortable-ghost{opacity:.35}
-.sortable-chosen .card,.sortable-chosen{box-shadow:0 10px 30px #000a}
+.card.sortable-ghost{border:1.5px dashed #8b93a7;background:transparent;box-shadow:none}
+.card.sortable-ghost>*{opacity:.35}
+.card.sortable-fallback{opacity:.96!important;box-shadow:0 18px 40px #000c;will-change:transform;transition:none}
+body.dragging{user-select:none;-webkit-user-select:none}
 #preview .card{border-color:#ffd23f66;margin-bottom:6px}
 .prevhead{display:flex;justify-content:space-between;align-items:center;margin:14px 0 8px;color:var(--mute);font-size:13px}
 .empty{text-align:center;padding:40px 20px;color:var(--mute);border:2px dashed var(--line);border-radius:18px;grid-column:1/-1}
@@ -173,9 +177,9 @@ footer a{color:var(--mute)}
   <div id="notice"></div>
   <div class="sub"><span id="lastAll"></span>
     <div class="views" id="views">
-      <button data-v="1" aria-label="Liste"><svg viewBox="0 0 20 20" fill="currentColor"><rect x="2" y="3" width="16" height="4" rx="1.5"/><rect x="2" y="9" width="16" height="4" rx="1.5"/><rect x="2" y="15" width="16" height="3" rx="1.5"/></svg></button>
-      <button data-v="2" aria-label="2 Spalten"><svg viewBox="0 0 20 20" fill="currentColor"><rect x="2" y="2" width="7" height="7" rx="1.5"/><rect x="11" y="2" width="7" height="7" rx="1.5"/><rect x="2" y="11" width="7" height="7" rx="1.5"/><rect x="11" y="11" width="7" height="7" rx="1.5"/></svg></button>
-      <button data-v="3" aria-label="3 Spalten"><svg viewBox="0 0 20 20" fill="currentColor"><rect x="1" y="2" width="5" height="7" rx="1.2"/><rect x="7.5" y="2" width="5" height="7" rx="1.2"/><rect x="14" y="2" width="5" height="7" rx="1.2"/><rect x="1" y="11" width="5" height="7" rx="1.2"/><rect x="7.5" y="11" width="5" height="7" rx="1.2"/><rect x="14" y="11" width="5" height="7" rx="1.2"/></svg></button>
+      <button data-v="1" aria-label="Liste"><svg viewBox="0 0 20 20" fill="currentColor"><rect x="2" y="2.5" width="4" height="4" rx="1"/><rect x="7.5" y="3.5" width="10.5" height="2" rx="1"/><rect x="2" y="8" width="4" height="4" rx="1"/><rect x="7.5" y="9" width="10.5" height="2" rx="1"/><rect x="2" y="13.5" width="4" height="4" rx="1"/><rect x="7.5" y="14.5" width="10.5" height="2" rx="1"/></svg></button>
+      <button data-v="2" aria-label="2 Spalten"><svg viewBox="0 0 20 20" fill="currentColor"><rect x="2" y="2.5" width="7" height="6.5" rx="1"/><rect x="11" y="2.5" width="7" height="6.5" rx="1"/><rect x="2" y="11" width="7" height="6.5" rx="1"/><rect x="11" y="11" width="7" height="6.5" rx="1"/></svg></button>
+      <button data-v="3" aria-label="3 Spalten"><svg viewBox="0 0 20 20" fill="currentColor"><rect x="2" y="2.5" width="4.4" height="6.5" rx="1"/><rect x="7.8" y="2.5" width="4.4" height="6.5" rx="1"/><rect x="13.6" y="2.5" width="4.4" height="6.5" rx="1"/><rect x="2" y="11" width="4.4" height="6.5" rx="1"/><rect x="7.8" y="11" width="4.4" height="6.5" rx="1"/><rect x="13.6" y="11" width="4.4" height="6.5" rx="1"/></svg></button>
     </div>
   </div>
 
@@ -648,6 +652,7 @@ $('#results').addEventListener('click', e => {
   if (a) addItem(sRes[+a.dataset.n]);
   else if (o) showPreview(sRes[+o.dataset.n]);
 });
+document.addEventListener('contextmenu', e => { if (e.target.closest('#list .card')) e.preventDefault(); });
 document.addEventListener('click', e => { if (!e.target.closest('.search')) $('#results').innerHTML = ''; });
 function closeSearch(){ $('#results').innerHTML = ''; $('#q').value = ''; }
 async function showPreview(it){
@@ -706,19 +711,20 @@ function card(it, isPrev){
     if (c.saErr) body += '<div class="err">Tonspur: ' + esc(c.saErr) + '</div>';
   }
   if (it.err) body += '<div class="err">' + esc(it.err) + '</div>';
-  if (it.overview) body += '<details class="about"><summary>Worum geht\'s?</summary><p>' + esc(it.overview) + '</p></details>';
+  let foot = '';
+  if (it.overview) foot += '<details class="about"><summary>Worum geht\'s?</summary><p>' + esc(it.overview) + '</p></details>';
 
   const acts = isPrev
     ? '<button class="pri" data-act="add"><span class="plus">+</span> Zur Liste hinzufügen</button><button data-act="close">Schließen</button>'
     : '<button data-act="check" data-id="' + esc(it.id) + '">Prüfen</button><button class="del" data-act="del" data-id="' + esc(it.id) + '">Entfernen</button>';
 
   return '<article class="card' + (c && !isPrev ? ' hasdate' : '') + '" id="c-' + esc(it.id) + '" data-id="' + esc(it.id) + '">' +
-    (it.poster ? '<img class="poster" alt="" loading="lazy" src="' + IMG + 'w342' + esc(it.poster) + '">' : '<div class="poster"></div>') +
+    (it.poster ? '<img class="poster" alt="" draggable="false" loading="lazy" src="' + IMG + 'w342' + esc(it.poster) + '">' : '<div class="poster"></div>') +
     '<div><div class="head"><h3 class="ttl">' + esc(it.title) + '</h3>' +
     (c && !isPrev ? '<span class="when">Zuletzt geprüft: ' + esc(fmtDate(c.at)) + '</span>' : '') + '</div>' +
     '<div class="meta">' + metaOf(it) + '</div>' +
     '<div class="status">' + pills + '</div>' + body +
-    '<div class="acts">' + acts + '</div></div></article>';
+    '<div class="foot">' + foot + '<div class="acts">' + acts + '</div></div></div></article>';
 }
 function renderPreview(){
   const box = $('#preview');
@@ -886,10 +892,13 @@ function normPos(){
 normPos();
 if (window.Sortable){
   Sortable.create($('#list'), {
-    animation:160, delay:250, delayOnTouchOnly:true, touchStartThreshold:6, forceFallback:true, fallbackTolerance:4,
+    animation:150, delay:220, delayOnTouchOnly:true, touchStartThreshold:6, forceFallback:true, fallbackTolerance:4, fallbackOnBody:true,
+    scroll:true, bubbleScroll:true, scrollSensitivity:110, scrollSpeed:18,
+    onStart(){ document.body.classList.add('dragging'); },
     draggable:'.card', filter:'a,button,summary,.about p,.empty', preventOnFilter:false,
     ghostClass:'sortable-ghost',
     onEnd(){
+      document.body.classList.remove('dragging');
       const ids = [...$('#list').querySelectorAll('.card')].map(el => el.dataset.id);
       const vis = ids.map(id => items.find(i => i.id === id)).filter(Boolean);
       const slots = vis.map(i => i.pos).sort((a, b) => a - b);
