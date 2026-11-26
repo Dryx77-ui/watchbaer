@@ -125,7 +125,8 @@ h1 span{color:var(--acc)}
 .card.sortable-ghost>*{opacity:.35}
 .card.sortable-fallback{opacity:1!important;border-color:transparent;box-shadow:0 18px 40px #000c;will-change:transform;transition:none}
 .dragframe{position:absolute;top:-1px;left:-1px;pointer-events:none;display:none;z-index:2;overflow:visible}
-.card.sortable-ghost .dragframe,.card.sortable-fallback .dragframe{display:block}
+.card.sortable-ghost .dragframe,.card.sortable-fallback .dragframe,.card.ready .dragframe{display:block}
+.card.ready{transform:scale(.985);transition:transform .15s}
 body.dragging{user-select:none;-webkit-user-select:none}
 #preview .card{border-color:#ffd23f66;margin-bottom:6px}
 .prevhead{display:flex;justify-content:space-between;align-items:center;margin:14px 0 8px;color:var(--mute);font-size:13px}
@@ -374,54 +375,6 @@ async function fetchAudio(it, imdb){
   return out;
 }
 
-/* ---------- JustWatch (inoffiziell): direkte Links pro Anbieter ---------- */
-const JWQ = (withIds) => `query GetSearchTitles($searchTitlesFilter: TitleFilter!, $country: Country!, $language: Language!, $first: Int!) {
-  popularTitles(country: $country, filter: $searchTitlesFilter, first: $first, sortBy: POPULAR, sortRandomSeed: 0) {
-    edges { node { id objectType
-      content(country: $country, language: $language) { title originalReleaseYear ${withIds ? 'externalIds { imdbId }' : ''} }
-      offers(country: $country, platform: WEB) { monetizationType standardWebURL package { clearName technicalName } }
-    } }
-  }
-}`;
-async function jwPost(query, variables){
-  const body = JSON.stringify({operationName:'GetSearchTitles', query, variables});
-  let r;
-  try { r = await fetch('https://apis.justwatch.com/graphql', {method:'POST', headers:{'Content-Type':'application/json'}, body}); }
-  catch(e){ r = await fetch('https://apis.justwatch.com/graphql', {method:'POST', headers:{'Content-Type':'text/plain'}, body}); }
-  if (!r.ok) throw new Error('JW ' + r.status);
-  return r.json();
-}
-async function fetchJW(it, imdb){
-  const type = it.type === 'movie' ? 'MOVIE' : 'SHOW', year = +(it.year || it.first || 0);
-  const pick = (edges) => {
-    const nodes = (edges||[]).map(e => e.node).filter(n => n && n.objectType === type);
-    if (imdb){ const hit = nodes.find(n => n.content?.externalIds?.imdbId === imdb); if (hit) return hit; }
-    const nt = [norm(it.title), norm(it.orig)];
-    return nodes.find(n => nt.includes(norm(n.content?.title)) && (!year || Math.abs((n.content?.originalReleaseYear||0) - year) <= 1))
-        || nodes.find(n => !year || (n.content?.originalReleaseYear||0) === year) || null;
-  };
-  let node = null;
-  for (const q of [it.title, it.orig].filter((x, i, a) => x && a.indexOf(x) === i)){
-    const vars = {first:8, searchTitlesFilter:{searchQuery:q}, language:'de', country:'DE'};
-    let d = await jwPost(JWQ(true), vars);
-    if (d.errors) d = await jwPost(JWQ(false), vars);
-    node = pick(d.data?.popularTitles?.edges);
-    if (node) break;
-  }
-  if (!node) return [];
-  const out = [];
-  for (const o of (node.offers||[])){
-    if (!o.standardWebURL) continue;
-    const name = o.package?.clearName || '';
-    if (['FLATRATE','FREE','ADS'].includes(o.monetizationType)){
-      const inf = aboInfo(name); if (inf) out.push({cat:'abo', key:inf.key, brand:inf.brand, link:o.standardWebURL});
-    } else if (['RENT','BUY'].includes(o.monetizationType)){
-      const inf = buyInfo(name); out.push({cat:'buy', key:inf.key, brand:inf.brand, link:o.standardWebURL});
-    }
-  }
-  return out;
-}
-
 /* ---------- Prüfen ---------- */
 const isAnime = (genres, lang, countries) => (genres||[]).includes(16) && (lang === 'ja' || (countries||[]).includes('JP'));
 const kindOf = it => it.anime ? (it.type === 'movie' ? 'Anime-Film' : 'Anime') : (it.type === 'tv' ? 'Serie' : 'Film');
@@ -448,8 +401,6 @@ async function checkItem(it){
     catch(e){ if (e.code === 'LIMIT') saLimit = true; else saErr = e.message; }
   }
   if (!keys.rapid){ saC = null; saAt = 0; }
-  let jwC = null;
-  try { jwC = await fetchJW(it, imdb); } catch(e){ jwC = null; }
 
   const abo = new Map(), buy = new Map();
   for (const key of ['flatrate','free','ads']) for (const p of (wp[key]||[])){
@@ -469,19 +420,7 @@ async function checkItem(it){
     const f = saC.filter(o => o.key === key);
     return f.length ? f.some(o => o.de) : null;
   };
-  // Kein direkter Link für genau diesen Anbieter? Dann einen direkten Link aus derselben Familie nehmen
-  // (Prime, Prime-Channels und Amazon Video gehören zusammen).
-  const fam = b => (b === 'prime' || b === 'channel' || b === 'amazon') ? 'amazon' : b;
-  const borrow = e => {
-    const cat = e.key.startsWith('buy-') ? 'buy' : 'abo';
-    const jw = jwC || [], sa = saC || [];
-    const exact = jw.find(o => o.link && o.key === e.key) || sa.find(o => o.link && o.key === e.key);
-    if (exact) return exact.link;
-    const fm = [...sa, ...jw].filter(o => o.link && fam(o.brand) === fam(e.brand));
-    const best = fm.find(o => o.cat === cat) || fm[0];
-    return best ? best.link : null;
-  };
-  const fin = m => [...m.values()].map(e => ({...e, de:deOf(e.key), link: e.link || borrow(e) || searchUrl(e.brand, it.title, e.name)}));
+  const fin = m => [...m.values()].map(e => ({...e, de:deOf(e.key), link: e.link || searchUrl(e.brand, it.title, e.name)}));
   it.check = {v:2, at:Date.now(), link:wp.link || null, saC, saAt, saErr, abo:fin(abo), buy:fin(buy)};
   it.mod = Date.now();
 }
@@ -770,8 +709,8 @@ function chipList(it, list, small){
   const open = expanded.has(it.id);
   let h = main.map(p => chip(p, small)).join('');
   if (rest.length){
+    h += '<button class="chip more' + (small ? ' small' : '') + '" data-act="more" data-id="' + esc(it.id) + '">' + (open ? '−' : '+') + rest.length + '</button>';
     if (open) h += rest.map(p => chip(p, small)).join('');
-    h += '<button class="chip more' + (small ? ' small' : '') + '" data-act="more" data-id="' + esc(it.id) + '">' + (open ? 'weniger' : '+' + rest.length) + '</button>';
   }
   return h;
 }
@@ -987,6 +926,9 @@ function normPos(){
   items.forEach((it, i) => { it.pos = i; });
 }
 normPos();
+let lastTouch = false;
+addEventListener('touchstart', () => { lastTouch = true; }, {passive:true, capture:true});
+addEventListener('mousedown', () => { lastTouch = false; }, {capture:true});
 // Gestrichelter Rahmen: überall gleiche Lücken, je ein Strich mittig auf jeder Ecke.
 // Passt es nicht genau, werden die Striche einer Seite etwas länger gemacht.
 function addFrame(el){
@@ -1023,8 +965,8 @@ if (window.Sortable){
       const v = Math.round(8 + max * Math.min(1, p) ** 2);
       (document.scrollingElement || document.documentElement).scrollTop += Math.sign(oy) * v;
     },
-    onChoose(e){ addFrame(e.item); },
-    onUnchoose(e){ setTimeout(() => e.item.querySelector('.dragframe')?.remove(), 0); },
+    onChoose(e){ addFrame(e.item); if (lastTouch){ e.item.classList.add('ready'); try { navigator.vibrate && navigator.vibrate(12); } catch(_){} } },
+    onUnchoose(e){ e.item.classList.remove('ready'); setTimeout(() => e.item.querySelector('.dragframe')?.remove(), 0); },
     onStart(){ document.body.classList.add('dragging'); },
     draggable:'.card', filter:'a,button,summary,.about p,.empty', preventOnFilter:false,
     ghostClass:'sortable-ghost',
