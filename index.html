@@ -151,6 +151,11 @@ dialog::backdrop{background:#000a}
 .btn.pri{background:var(--acc);color:#1b1600;border-color:var(--acc)}
 .note{font-size:12px;color:var(--mute)}
 .syncok{color:var(--ok)}
+#toast{position:fixed;left:50%;bottom:20px;transform:translate(-50%,140%);display:flex;align-items:center;gap:14px;background:#2a2e3b;color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:10px 12px 10px 16px;font-size:14px;box-shadow:0 12px 30px #000a;z-index:50;transition:transform .25s ease;max-width:92vw}
+#toast.show{transform:translate(-50%,0)}
+#toast span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#toast button{border:0;background:none;color:var(--acc);font-weight:700;min-height:36px;padding:0 6px}
+.chip.more{background:var(--card2);border:1px solid var(--line);color:var(--ink);cursor:pointer;font:inherit;font-size:13px;font-weight:700}
 footer{margin-top:28px;color:var(--mute);font-size:12px;text-align:center;line-height:1.6}
 footer a{color:var(--mute)}
 .spin[hidden]{display:none}
@@ -253,6 +258,7 @@ let deleted = LS.get('wl_deleted', {});
 let lastAll = LS.get('wl_lastAll', null);
 let sync = LS.get('wl_sync', {token:'', gist:''});
 let view = LS.get('wl_view', 1);
+const expanded = new Set();
 let filter = 'all', typeF = 'all', busy = false, saLimit = false, preview = null;
 const phoneMQ = matchMedia('(max-width: 599px)');
 const effView = () => phoneMQ.matches ? (view === 3 ? 2 : view) : (view === 2 ? 3 : view);
@@ -707,6 +713,17 @@ function chip(p, small){
   const href = p.link ? ' href="' + esc(p.link) + '" target="_blank" rel="noopener"' : '';
   return '<a class="chip' + (small ? ' small' : '') + '" style="background:' + esc(p.color) + '"' + href + '>' + esc(p.name) + au + '</a>';
 }
+const MAIN = new Set(['netflix','disney','prime','amazon','channel','crunchyroll']);
+function chipList(it, list, small){
+  const main = list.filter(p => MAIN.has(p.brand)), rest = list.filter(p => !MAIN.has(p.brand));
+  const open = expanded.has(it.id);
+  let h = main.map(p => chip(p, small)).join('');
+  if (rest.length){
+    if (open) h += rest.map(p => chip(p, small)).join('');
+    h += '<button class="chip more' + (small ? ' small' : '') + '" data-act="more" data-id="' + esc(it.id) + '">' + (open ? 'weniger' : '+' + rest.length) + '</button>';
+  }
+  return h;
+}
 function card(it, isPrev){
   const c = it.check, s = statusOf(it);
   let pills = '';
@@ -719,8 +736,8 @@ function card(it, isPrev){
 
   let body = '';
   if (c){
-    if (c.abo.length) body += '<div class="grp"><h4>Im Abo</h4><div class="chips">' + c.abo.map(p => chip(p)).join('') + '</div></div>';
-    else if (c.buy.length) body += '<div class="grp"><h4>Leihen / Kaufen</h4><div class="chips">' + c.buy.map(p => chip(p, true)).join('') + '</div></div>';
+    if (c.abo.length) body += '<div class="grp"><h4>Im Abo</h4><div class="chips">' + chipList(it, c.abo) + '</div></div>';
+    else if (c.buy.length) body += '<div class="grp"><h4>Leihen / Kaufen</h4><div class="chips">' + chipList(it, c.buy, true) + '</div></div>';
     if (c.saErr) body += '<div class="err">Tonspur: ' + esc(c.saErr) + '</div>';
   }
   if (it.err) body += '<div class="err">' + esc(it.err) + '</div>';
@@ -739,6 +756,16 @@ function card(it, isPrev){
     '<div class="status">' + pills + '</div>' + body +
     '<div class="foot">' + foot + '<div class="acts">' + acts + '</div></div></div></article>';
 }
+let toastTimer = null;
+function toast(text, action, fn){
+  let t = $('#toast');
+  if (!t){ t = document.createElement('div'); t.id = 'toast'; document.body.appendChild(t); }
+  t.innerHTML = '<span>' + esc(text) + '</span>' + (action ? '<button>' + esc(action) + '</button>' : '');
+  t.className = 'show';
+  const btn = t.querySelector('button');
+  if (btn) btn.onclick = () => { fn(); t.className = ''; clearTimeout(toastTimer); };
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.className = ''; }, 5000);
+}
 function renderPreview(){
   const box = $('#preview');
   if (!preview){ box.innerHTML = ''; return; }
@@ -746,6 +773,7 @@ function renderPreview(){
 }
 $('#preview').addEventListener('click', e => {
   const b = e.target.closest('button[data-act]'); if (!b || !preview) return;
+  if (b.dataset.act === 'more'){ if (expanded.has(preview.id)) expanded.delete(preview.id); else expanded.add(preview.id); renderPreview(); return; }
   if (b.dataset.act === 'add') addItem(preview);
   if (b.dataset.act === 'close'){ preview = null; renderPreview(); }
 });
@@ -788,9 +816,14 @@ $('#list').addEventListener('click', e => {
   const b = e.target.closest('button[data-act]'); if (!b) return;
   const it = items.find(x => x.id === b.dataset.id); if (!it) return;
   if (b.dataset.act === 'check'){ if (it.check) it.check.saAt = 0; runCheck([it]); }
-  if (b.dataset.act === 'del' && confirm('„' + it.title + '“ entfernen?')){
+  if (b.dataset.act === 'del'){
+    const idx = items.indexOf(it);
     items = items.filter(x => x !== it); deleted[it.id] = Date.now(); save(); render();
+    toast('„' + it.title + '“ entfernt', 'Rückgängig', () => {
+      delete deleted[it.id]; it.mod = Date.now(); items.splice(Math.min(idx, items.length), 0, it); normPos(); save(); render();
+    });
   }
+  if (b.dataset.act === 'more'){ if (expanded.has(it.id)) expanded.delete(it.id); else expanded.add(it.id); render(); }
 });
 $('#checkAll').addEventListener('click', () => runCheck([...items]));
 
