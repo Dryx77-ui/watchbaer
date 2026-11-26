@@ -374,6 +374,54 @@ async function fetchAudio(it, imdb){
   return out;
 }
 
+/* ---------- JustWatch (inoffiziell): direkte Links pro Anbieter ---------- */
+const JWQ = (withIds) => `query GetSearchTitles($searchTitlesFilter: TitleFilter!, $country: Country!, $language: Language!, $first: Int!) {
+  popularTitles(country: $country, filter: $searchTitlesFilter, first: $first, sortBy: POPULAR, sortRandomSeed: 0) {
+    edges { node { id objectType
+      content(country: $country, language: $language) { title originalReleaseYear ${withIds ? 'externalIds { imdbId }' : ''} }
+      offers(country: $country, platform: WEB) { monetizationType standardWebURL package { clearName technicalName } }
+    } }
+  }
+}`;
+async function jwPost(query, variables){
+  const body = JSON.stringify({operationName:'GetSearchTitles', query, variables});
+  let r;
+  try { r = await fetch('https://apis.justwatch.com/graphql', {method:'POST', headers:{'Content-Type':'application/json'}, body}); }
+  catch(e){ r = await fetch('https://apis.justwatch.com/graphql', {method:'POST', headers:{'Content-Type':'text/plain'}, body}); }
+  if (!r.ok) throw new Error('JW ' + r.status);
+  return r.json();
+}
+async function fetchJW(it, imdb){
+  const type = it.type === 'movie' ? 'MOVIE' : 'SHOW', year = +(it.year || it.first || 0);
+  const pick = (edges) => {
+    const nodes = (edges||[]).map(e => e.node).filter(n => n && n.objectType === type);
+    if (imdb){ const hit = nodes.find(n => n.content?.externalIds?.imdbId === imdb); if (hit) return hit; }
+    const nt = [norm(it.title), norm(it.orig)];
+    return nodes.find(n => nt.includes(norm(n.content?.title)) && (!year || Math.abs((n.content?.originalReleaseYear||0) - year) <= 1))
+        || nodes.find(n => !year || (n.content?.originalReleaseYear||0) === year) || null;
+  };
+  let node = null;
+  for (const q of [it.title, it.orig].filter((x, i, a) => x && a.indexOf(x) === i)){
+    const vars = {first:8, searchTitlesFilter:{searchQuery:q}, language:'de', country:'DE'};
+    let d = await jwPost(JWQ(true), vars);
+    if (d.errors) d = await jwPost(JWQ(false), vars);
+    node = pick(d.data?.popularTitles?.edges);
+    if (node) break;
+  }
+  if (!node) return [];
+  const out = [];
+  for (const o of (node.offers||[])){
+    if (!o.standardWebURL) continue;
+    const name = o.package?.clearName || '';
+    if (['FLATRATE','FREE','ADS'].includes(o.monetizationType)){
+      const inf = aboInfo(name); if (inf) out.push({cat:'abo', key:inf.key, brand:inf.brand, link:o.standardWebURL});
+    } else if (['RENT','BUY'].includes(o.monetizationType)){
+      const inf = buyInfo(name); out.push({cat:'buy', key:inf.key, brand:inf.brand, link:o.standardWebURL});
+    }
+  }
+  return out;
+}
+
 /* ---------- Prüfen ---------- */
 const isAnime = (genres, lang, countries) => (genres||[]).includes(16) && (lang === 'ja' || (countries||[]).includes('JP'));
 const kindOf = it => it.anime ? (it.type === 'movie' ? 'Anime-Film' : 'Anime') : (it.type === 'tv' ? 'Serie' : 'Film');
@@ -400,6 +448,8 @@ async function checkItem(it){
     catch(e){ if (e.code === 'LIMIT') saLimit = true; else saErr = e.message; }
   }
   if (!keys.rapid){ saC = null; saAt = 0; }
+  let jwC = null;
+  try { jwC = await fetchJW(it, imdb); } catch(e){ jwC = null; }
 
   const abo = new Map(), buy = new Map();
   for (const key of ['flatrate','free','ads']) for (const p of (wp[key]||[])){
@@ -423,11 +473,12 @@ async function checkItem(it){
   // (Prime, Prime-Channels und Amazon Video gehören zusammen).
   const fam = b => (b === 'prime' || b === 'channel' || b === 'amazon') ? 'amazon' : b;
   const borrow = e => {
-    if (!saC) return null;
-    const same = saC.find(o => o.link && o.key === e.key);
-    if (same) return same.link;
-    const pref = saC.filter(o => o.link && fam(o.brand) === fam(e.brand));
-    const best = pref.find(o => o.cat === (e.key.startsWith('buy-') ? 'buy' : 'abo')) || pref[0];
+    const cat = e.key.startsWith('buy-') ? 'buy' : 'abo';
+    const jw = jwC || [], sa = saC || [];
+    const exact = jw.find(o => o.link && o.key === e.key) || sa.find(o => o.link && o.key === e.key);
+    if (exact) return exact.link;
+    const fm = [...sa, ...jw].filter(o => o.link && fam(o.brand) === fam(e.brand));
+    const best = fm.find(o => o.cat === cat) || fm[0];
     return best ? best.link : null;
   };
   const fin = m => [...m.values()].map(e => ({...e, de:deOf(e.key), link: e.link || borrow(e) || searchUrl(e.brand, it.title, e.name)}));
