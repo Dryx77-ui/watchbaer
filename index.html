@@ -892,23 +892,27 @@ function normPos(){
   items.forEach((it, i) => { it.pos = i; });
 }
 normPos();
-// Gestrichelter Rahmen mit gleich abgerundeten Ecken (Striche passend auf jede Kante verteilt)
+// Gestrichelter Rahmen: überall gleiche Lücken, je ein Strich mittig auf jeder Ecke.
+// Passt es nicht genau, werden die Striche einer Seite etwas länger gemacht.
 function addFrame(el){
   el.querySelector('.dragframe')?.remove();
   const w = el.offsetWidth, h = el.offsetHeight;
   const r = parseFloat(getComputedStyle(el).borderTopLeftRadius) || 16;
-  const sw = 2, d = 8, s = sw / 2, rr = r - s, cd = 10;
-  const edge = (x1, y1, x2, y2) => {
-    const L = Math.hypot(x2 - x1, y2 - y1);
-    const n = Math.max(1, Math.round((L - 6) / (d + 6)));
-    const g = (L - n * d) / (n + 1);
-    return '<line x1="' + x1 + '" y1="' + y1 + '" x2="' + x2 + '" y2="' + y2 + '" stroke-dasharray="' + d + ' ' + (Math.ceil(g * 100) / 100) + '" stroke-dashoffset="' + d + '"/>';
+  const sw = 2, s = sw / 2, rr = r - s, D = 8, G = 7, c = Math.SQRT1_2, q = Math.PI / 4 * rr;
+  const f = n => n.toFixed(2);
+  const side = (d, len) => {
+    const k = Math.max(1, Math.round(len / (D + G)));
+    const dash = len / k - G;
+    return '<path d="' + d + '" stroke-dasharray="' + f(dash) + ' ' + G + '" stroke-dashoffset="' + f(dash / 2) + '"/>';
   };
-  const A = Math.PI * rr / 2, gap = ((A - cd) / 2).toFixed(2);
-  const arc = (x1, y1, x2, y2) => '<path d="M' + x1 + ' ' + y1 + ' A' + rr + ' ' + rr + ' 0 0 1 ' + x2 + ' ' + y2 + '" stroke-dasharray="' + cd + ' ' + (A * 2).toFixed(2) + '" stroke-dashoffset="-' + gap + '"/>';
+  const A = (x, y) => ' A' + f(rr) + ' ' + f(rr) + ' 0 0 1 ' + f(x) + ' ' + f(y);
+  const TL = [r - rr * c, r - rr * c], TR = [w - r + rr * c, r - rr * c], BR = [w - r + rr * c, h - r + rr * c], BL = [r - rr * c, h - r + rr * c];
+  const H = 2 * q + (w - 2 * r), V = 2 * q + (h - 2 * r);
   const svg = '<svg class="dragframe" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '" fill="none" stroke="#9aa1b3" stroke-width="' + sw + '" stroke-linecap="round">' +
-    edge(r, s, w - r, s) + edge(w - s, r, w - s, h - r) + edge(w - r, h - s, r, h - s) + edge(s, h - r, s, r) +
-    arc(w - r, s, w - s, r) + arc(w - s, h - r, w - r, h - s) + arc(r, h - s, s, h - r) + arc(s, r, r, s) + '</svg>';
+    side('M' + f(TL[0]) + ' ' + f(TL[1]) + A(r, s) + ' L' + f(w - r) + ' ' + s + A(TR[0], TR[1]), H) +
+    side('M' + f(TR[0]) + ' ' + f(TR[1]) + A(w - s, r) + ' L' + (w - s) + ' ' + f(h - r) + A(BR[0], BR[1]), V) +
+    side('M' + f(BR[0]) + ' ' + f(BR[1]) + A(w - r, h - s) + ' L' + f(r) + ' ' + (h - s) + A(BL[0], BL[1]), H) +
+    side('M' + f(BL[0]) + ' ' + f(BL[1]) + A(s, h - r) + ' L' + s + ' ' + f(r) + A(TL[0], TL[1]), V) + '</svg>';
   el.insertAdjacentHTML('beforeend', svg);
 }
 if (window.Sortable){
