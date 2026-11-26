@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#101218">
+<title>Watchbär</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* VOICE: gemütlicher Fernsehabend, klar und schnell
+   IDEA: eine Programmzeitschrift / Kinoplakat-Leiste für die eigene Watchlist
+   PICTURE: die Liste selbst, Poster links, farbige Anbieter-Etiketten
+   COLOUR and TYPE: Nachtblau-Schwarz, Anbieterfarben als Akzente, Gelb für den Prüf-Knopf; Big Shoulders + Inter
+   LAYOUT: eine Spalte, Suche oben, großer Prüf-Knopf, Filter, Karten */
+:root{color-scheme:dark;--bg:#101218;--card:#1a1d26;--card2:#232734;--ink:#f3f1ea;--mute:#9aa0ad;--line:#2c3140;--acc:#ffd23f;--ok:#3ecf8e;--bad:#ff5c5c;--warn:#ffb648}
+*{box-sizing:border-box;min-width:0}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.5 Inter,system-ui,sans-serif;overflow-x:clip;padding-bottom:40px}
+button,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+.wrap{max-width:720px;margin:0 auto;padding:0 16px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:20px 0 12px}
+h1{font:800 clamp(30px,9vw,40px)/1.05 "Big Shoulders Display",Inter,sans-serif;margin:0;letter-spacing:.5px;white-space:nowrap}
+h1 span{color:var(--acc)}
+.iconbtn{background:var(--card);border:1px solid var(--line);border-radius:12px;min-height:44px;padding:0 14px;font-weight:600;font-size:14px}
+.search{position:relative;margin-top:6px}
+.search input{width:100%;font-size:16px;min-height:52px;padding:0 16px;border-radius:14px;border:1px solid var(--line);background:var(--card);}
+.search input::placeholder{color:var(--mute)}
+.results{position:absolute;left:0;right:0;top:58px;background:var(--card2);border:1px solid var(--line);border-radius:14px;overflow:hidden;z-index:20;box-shadow:0 18px 40px #0009;max-height:70vh;overflow-y:auto}
+.results:empty{display:none}
+.res{display:flex;gap:12px;align-items:center;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);padding:10px 12px;min-height:64px}
+.res:last-child{border-bottom:0}
+.res img,.res .noimg{width:40px;height:60px;border-radius:6px;object-fit:cover;background:#2c3140;flex:none}
+.res b{display:block;font-weight:600}
+.res small{color:var(--mute);font-size:13px}
+.res .have{margin-left:auto;font-size:13px;color:var(--ok);flex:none}
+.msg{padding:14px;color:var(--mute);font-size:14px}
+.checkall{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;gap:10px;width:auto;min-width:230px;padding:0 34px;margin:16px auto 10px;min-height:52px;border:0;border-radius:14px;background:radial-gradient(circle at 50% 40%,#f5d98f,#e9961d 80%);color:#3a2200;font-weight:700;font-size:17px;transition:transform .12s ease,background .2s}
+.checkall:active{transform:scale(.97)}
+.checkall>span{position:relative;z-index:1;display:inline-flex;align-items:center;gap:10px}
+.checkall .bar{display:none;position:absolute;left:0;top:0;bottom:0;width:0;background:transparent;transition:width .35s ease;z-index:0}
+.checkall::after{content:"";position:absolute;top:0;bottom:0;width:40%;left:-60%;background:linear-gradient(100deg,transparent,#ffffffcc,transparent);animation:shine 5s ease-in-out 1s infinite;z-index:1;pointer-events:none}
+.checkall[disabled]::after{animation:none;opacity:0}
+@keyframes shine{0%{left:-60%}18%,100%{left:120%}}
+.notice{background:#ffb64818;border:1px solid #ffb64855;color:#ffd79a;border-radius:14px;padding:12px 14px;font-size:14px;margin:4px 0 12px}
+.sub{display:flex;justify-content:space-between;gap:8px;color:var(--mute);font-size:13px;margin-bottom:12px;flex-wrap:wrap}
+.filters{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:14px;scrollbar-width:none}
+.filters button{flex:none;min-height:40px;padding:0 14px;border-radius:999px;border:1px solid var(--line);background:var(--card);font-size:14px;font-weight:600}
+.filters button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.filters .n{opacity:.6;margin-left:4px;font-weight:500}
+.card{display:grid;grid-template-columns:72px minmax(0,1fr);gap:14px;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:12px;margin-bottom:12px}
+.card .poster{width:72px;height:108px;border-radius:10px;object-fit:cover;background:#2c3140}
+.ttl{font-weight:700;font-size:17px;line-height:1.25;margin:0}
+.meta{color:var(--mute);font-size:13px;margin-top:2px}
+.status{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 4px}
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;padding:3px 9px;border-radius:999px;white-space:nowrap}
+.pill.ok{background:#3ecf8e22;color:var(--ok)}
+.pill.no{background:#ff5c5c22;color:var(--bad)}
+.pill.mid{background:#ffb64822;color:var(--warn)}
+.pill.q{background:#9aa0ad22;color:var(--mute)}
+.grp{margin-top:8px}
+.grp h4{margin:0 0 5px;font-size:12px;font-weight:600;color:var(--mute)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:#fff;border-radius:10px;padding:6px 10px;font-size:13px;font-weight:700;min-height:34px;line-height:1.15}
+.chip.small{font-size:12px;padding:4px 8px;min-height:28px;opacity:.9}
+.chip .au{font-size:10.5px;font-weight:800;padding:2px 5px;border-radius:5px;background:#0006;white-space:nowrap}
+.chip .au.no{background:#fff;color:#c4001a}
+.acts{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.acts button{min-height:40px;padding:0 10px;white-space:nowrap;border-radius:10px;border:1px solid var(--line);background:var(--card2);font-size:13px;font-weight:600}
+.acts .del{color:var(--bad)}
+.when{color:var(--mute);font-size:12px;margin-top:8px}
+.err{color:var(--bad);font-size:13px;margin-top:6px}
+.empty{text-align:center;padding:40px 20px;color:var(--mute);border:2px dashed var(--line);border-radius:18px}
+.empty b{display:block;color:var(--ink);font-size:18px;margin-bottom:6px}
+.setup{background:linear-gradient(135deg,#2a2440,#1a1d26);border:1px solid #4a3f75;border-radius:18px;padding:16px;margin:10px 0 16px}
+.setup b{display:block;font-size:17px;margin-bottom:4px}
+.setup p{margin:0 0 10px;color:#cfd2db;font-size:14px}
+dialog{background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:20px;padding:0;width:min(560px,94vw);max-height:90vh}
+dialog::backdrop{background:#000a}
+.dlg{padding:20px;overflow-y:auto;max-height:90vh}
+.dlg h2{margin:0 0 12px;font:800 28px/1.1 "Big Shoulders Display",Inter,sans-serif}
+.dlg h3{margin:18px 0 6px;font-size:15px}
+.dlg p,.dlg li{font-size:14px;color:#cfd2db}
+.dlg ol{padding-left:20px;margin:6px 0}
+.dlg a{color:var(--acc)}
+.field{display:block;margin:10px 0}
+.field span{display:block;font-size:13px;font-weight:600;margin-bottom:4px}
+.field input,.dlg textarea{width:100%;min-height:46px;border-radius:12px;border:1px solid var(--line);background:var(--bg);padding:10px 12px;font-size:16px}
+.dlg textarea{min-height:90px;font-size:13px}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.btn{min-height:44px;padding:0 16px;border-radius:12px;border:1px solid var(--line);background:var(--card2);font-weight:700}
+.btn.pri{background:var(--acc);color:#1b1600;border-color:var(--acc)}
+.note{font-size:12px;color:var(--mute)}
+footer{margin-top:28px;color:var(--mute);font-size:12px;text-align:center;line-height:1.6}
+footer a{color:var(--mute)}
+.spin{width:18px;height:18px;border:3px solid #3a220033;border-top-color:#3a2200;border-radius:50%;animation:sp 0.8s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spin,.checkall::after{animation:none}.checkall::after{display:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Watch<span>bär</span></h1>
+    <button class="iconbtn" id="openSettings">Einstellungen</button>
+  </header>
+
+  <div id="setupBox"></div>
+
+  <div class="search">
+    <input id="q" type="search" placeholder="Film, Serie oder Anime hinzufügen …" autocomplete="off" enterkeyhint="search">
+    <div class="results" id="results"></div>
+  </div>
+
+  <button class="checkall" id="checkAll"><i class="bar" id="checkBar"></i><span id="checkLabel">Alle prüfen</span></button>
+  <div id="notice"></div>
+  <div class="sub"><span id="lastAll"></span></div>
+
+  <div class="filters" id="filters"></div>
+  <div id="list"></div>
+
+  <footer>
+    Streaming-Daten: <a href="https://www.justwatch.com/de" target="_blank" rel="noopener">JustWatch</a> über <a href="https://www.themoviedb.org" target="_blank" rel="noopener">TMDB</a> · Tonspuren: Streaming Availability API<br>
+    Diese App nutzt die TMDB-API, ist aber nicht von TMDB unterstützt oder zertifiziert.
+  </footer>
+</div>
+
+<dialog id="settings">
+  <div class="dlg">
+    <h2>Einstellungen</h2>
+    <p>Die Schlüssel bleiben nur auf diesem Handy gespeichert.</p>
+    <label class="field"><span>TMDB-Schlüssel (Pflicht – für „wo läuft es?“)</span><input id="kTmdb" type="text" autocomplete="off" spellcheck="false" placeholder="API-Schlüssel oder Lesezugriffs-Token"></label>
+    <label class="field"><span>RapidAPI-Schlüssel (optional – für „deutsche Tonspur?“)</span><input id="kRapid" type="text" autocomplete="off" spellcheck="false" placeholder="X-RapidAPI-Key"></label>
+    <div class="row"><button class="btn pri" id="saveKeys">Speichern</button><button class="btn" id="closeSettings">Schließen</button></div>
+    <p id="keyMsg" class="note"></p>
+
+    <h3>So bekommst du den TMDB-Schlüssel</h3>
+    <ol>
+      <li>Auf <a href="https://www.themoviedb.org/signup" target="_blank" rel="noopener">themoviedb.org/signup</a> kostenlos registrieren und die E-Mail bestätigen.</li>
+      <li>Oben rechts auf dein Profilbild → <b>Einstellungen</b> → links <b>API</b>.</li>
+      <li>Einen Schlüssel beantragen („Developer“), Formular ausfüllen (Zweck: private App).</li>
+      <li>Den <b>API-Schlüssel</b> kopieren und oben einfügen.</li>
+    </ol>
+
+    <h3>So bekommst du den RapidAPI-Schlüssel</h3>
+    <ol>
+      <li>Auf <a href="https://rapidapi.com/movie-of-the-night-movie-of-the-night-default/api/streaming-availability" target="_blank" rel="noopener">die Streaming-Availability-Seite</a> gehen und kostenlos registrieren.</li>
+      <li><b>Subscribe to Test</b> / <b>Pricing</b> → den kostenlosen Plan „Basic“ wählen.</li>
+      <li>Im Bereich „Endpoints“ steht rechts <b>X-RapidAPI-Key</b> – den kopieren und oben einfügen.</li>
+    </ol>
+    <p class="note">Gratis-Plan: 100 Abfragen pro Tag, eine Abfrage pro Titel. Die App fragt Tonspuren pro Titel höchstens alle 12 Stunden neu ab und meldet sich, falls das Limit mal erreicht ist.</p>
+
+    <h3>Sicherung deiner Liste</h3>
+    <p>Kopier dir den Text irgendwohin (z. B. in Notizen). Zum Wiederherstellen einfach wieder einfügen.</p>
+    <textarea id="backup" spellcheck="false"></textarea>
+    <div class="row"><button class="btn" id="copyBackup">Liste kopieren</button><button class="btn" id="importBackup">Eingefügte Liste laden</button></div>
+    <p id="backupMsg" class="note"></p>
+  </div>
+</dialog>
+
+<script>
+{
+const LS = {
+  get(k, d){ try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch(e){ return d; } },
+  set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
+};
+let keys = LS.get('wl_keys', {tmdb:'', rapid:''});
+let items = LS.get('wl_items', []);
+let lastAll = LS.get('wl_lastAll', null);
+let filter = 'all';
+let busy = false;
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const save = () => LS.set('wl_items', items);
+const fmt = ts => ts ? new Date(ts).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
+const IMG = 'https://image.tmdb.org/t/p/';
+
+/* ---------- Anbieter-Farben ---------- */
+const BRANDS = [
+  {k:'crunchyroll', re:/crunchyroll/i, c:'#F47521'},
+  {k:'netflix', re:/netflix/i, c:'#E50914'},
+  {k:'disney', re:/disney/i, c:'#113CCF'},
+  {k:'prime', re:/amazon prime|prime video|^prime$|^amazon video$|^amazon$/i, c:'#00A8E1'},
+  {k:'wow', re:/^wow\b|sky\s?(go|store|ticket)?$/i, c:'#6A2BC2'},
+  {k:'apple', re:/apple/i, c:'#48484A'},
+  {k:'paramount', re:/paramount/i, c:'#0064FF'},
+  {k:'joyn', re:/joyn/i, c:'#C4007A'},
+  {k:'rtl', re:/rtl/i, c:'#D3122A'},
+  {k:'magenta', re:/magenta/i, c:'#E20074'},
+  {k:'adn', re:/anime digital network|^adn$/i, c:'#0091EA'},
+  {k:'animeonegai', re:/anime onegai/i, c:'#E4317F'},
+  {k:'youtube', re:/youtube/i, c:'#FF0000'},
+  {k:'google', re:/google play/i, c:'#01875F'},
+  {k:'rakuten', re:/rakuten/i, c:'#BF0000'},
+  {k:'mubi', re:/mubi/i, c:'#14213D'},
+  {k:'zdf', re:/zdf/i, c:'#FA7D19'},
+  {k:'ard', re:/^ard\b|ard mediathek|ard plus/i, c:'#00468C'},
+  {k:'arte', re:/\barte\b/i, c:'#E6501E'},
+  {k:'pluto', re:/pluto/i, c:'#2B2B2B'},
+  {k:'plex', re:/plex/i, c:'#B8860B'},
+  {k:'max', re:/^(hbo )?max$/i, c:'#002BE7'},
+  {k:'videoload', re:/videoload|maxdome/i, c:'#5A5A5A'}
+];
+function brandOf(name){
+  const n = String(name||'').trim();
+  for (const b of BRANDS) if (b.re.test(n)) return b;
+  return {k:'x-'+n.toLowerCase().replace(/[^a-z0-9]+/g,''), c:'#4A5060'};
+}
+const cleanName = n => String(n||'').replace(/\s+(standard |basic )?with ads$/i,'').trim();
+
+/* ---------- APIs ---------- */
+async function tmdb(path, params={}){
+  if (!keys.tmdb) throw new Error('Kein TMDB-Schlüssel eingetragen.');
+  const u = new URL('https://api.themoviedb.org/3' + path);
+  for (const [k,v] of Object.entries(params)) u.searchParams.set(k, v);
+  const headers = {accept:'application/json'};
+  if (keys.tmdb.length > 40) headers.Authorization = 'Bearer ' + keys.tmdb;
+  else u.searchParams.set('api_key', keys.tmdb);
+  const r = await fetch(u, {headers});
+  if (r.status === 401) throw new Error('TMDB-Schlüssel ist ungültig.');
+  if (!r.ok) throw new Error('TMDB antwortet nicht (Fehler ' + r.status + ').');
+  return r.json();
+}
+let saLimit = false;
+async function saGet(id){
+  const u = 'https://streaming-availability.p.rapidapi.com/shows/' + encodeURIComponent(id) + '?country=de&output_language=en';
+  const r = await fetch(u, {headers:{'X-RapidAPI-Key':keys.rapid,'X-RapidAPI-Host':'streaming-availability.p.rapidapi.com'}});
+  if (r.status === 404) return null;
+  if (r.status === 401 || r.status === 403) throw new Error('RapidAPI-Schlüssel ungültig oder Plan nicht abonniert.');
+  if (r.status === 429){ const e = new Error('LIMIT'); e.code = 'LIMIT'; throw e; }
+  if (!r.ok) throw new Error('Tonspur-Abfrage fehlgeschlagen (Fehler ' + r.status + ').');
+  return r.json();
+}
+async function fetchAudio(it, imdb){
+  let d = null;
+  if (imdb) d = await saGet(imdb);
+  if (!d) d = await saGet(it.type + '/' + it.tmdb);
+  return d?.streamingOptions?.de || [];
+}
+
+/* ---------- Prüfen ---------- */
+const CAT_TMDB = {flatrate:'abo', free:'free', ads:'free', rent:'buy', buy:'buy'};
+const CAT_SA = {subscription:'abo', addon:'abo', free:'free', rent:'buy', buy:'buy'};
+const isAnime = (genres, lang, countries) => (genres||[]).includes(16) && (lang === 'ja' || (countries||[]).includes('JP'));
+const kindOf = it => it.anime ? (it.type === 'movie' ? 'Anime-Film' : 'Anime') : (it.type === 'tv' ? 'Serie' : 'Film');
+const isDe = a => ['deu','ger','de'].includes(String(a?.language||'').toLowerCase());
+
+async function checkItem(it){
+  const d = await tmdb('/' + it.type + '/' + it.tmdb, {append_to_response:'watch/providers,external_ids', language:'de-DE'});
+  const wp = d['watch/providers']?.results?.DE || {};
+  const imdb = d.external_ids?.imdb_id || d.imdb_id || null;
+  if (d.poster_path) it.poster = d.poster_path;
+  it.anime = isAnime(d.genres ? d.genres.map(g => g.id) : [], d.original_language, d.origin_country);
+  if (it.type === 'movie'){ it.runtime = d.runtime || null; }
+  else {
+    it.first = (d.first_air_date || '').slice(0,4); it.last = (d.last_air_date || '').slice(0,4);
+    it.ended = ['Ended','Canceled'].includes(d.status);
+    it.seasons = d.number_of_seasons || null; it.episodes = d.number_of_episodes || null;
+  }
+
+  // Tonspuren (höchstens alle 12 Std. neu, um das Tageslimit zu schonen)
+  let sa = it.check?.sa || null, saAt = it.check?.saAt || 0, saErr = null;
+  if (keys.rapid && !saLimit && (!sa || Date.now() - saAt > 12*3600e3)){
+    try { sa = await fetchAudio(it, imdb); saAt = Date.now(); }
+    catch(e){ if (e.code === 'LIMIT') saLimit = true; else saErr = e.message; }
+  }
+  if (!keys.rapid){ sa = null; saAt = 0; }
+
+  // Audio-Info pro Anbieter sammeln
+  const audio = {};
+  for (const o of (sa||[])){
+    const nm = o.type === 'addon' && o.addon?.name ? o.addon.name : o.service?.name || o.service?.id;
+    const b = brandOf(nm);
+    audio[b.k] = audio[b.k] || {de:false};
+    if ((o.audios||[]).some(isDe)) audio[b.k].de = true;
+  }
+
+  const groups = {abo:new Map(), free:new Map(), buy:new Map()};
+  const add = (cat, name, logo, link) => {
+    const b = brandOf(name);
+    if (groups[cat].has(b.k)) return;
+    groups[cat].set(b.k, {name:cleanName(name), brand:b.k, color:b.c, logo, link,
+      de: sa ? (audio[b.k] ? audio[b.k].de : null) : null});
+  };
+  for (const [key, cat] of Object.entries(CAT_TMDB))
+    for (const p of (wp[key]||[])) add(cat, p.provider_name, p.logo_path, wp.link);
+  for (const o of (sa||[])){
+    const cat = CAT_SA[o.type]; if (!cat) continue;
+    const nm = o.type === 'addon' && o.addon?.name ? o.addon.name : o.service?.name || o.service?.id;
+    const b = brandOf(nm);
+    if (groups[cat].has(b.k)){ const e = groups[cat].get(b.k); if (o.link) e.link = o.link; }
+    else add(cat, nm, null, o.link || wp.link);
+  }
+  // Wer streamen kann, muss nicht nochmal unter Leihen/Kaufen auftauchen
+  for (const k of groups.buy.keys()) if (groups.abo.has(k) || groups.free.has(k)) groups.buy.delete(k);
+
+  it.check = {
+    at: Date.now(), link: wp.link || null, sa, saAt, saErr,
+    abo:[...groups.abo.values()], free:[...groups.free.values()], buy:[...groups.buy.values()]
+  };
+}
+
+function statusOf(it){
+  const c = it.check;
+  if (!c) return {k:'new'};
+  const stream = [...c.abo, ...c.free];
+  const known = stream.filter(p => p.de !== null);
+  return {
+    k: stream.length ? 'stream' : (c.buy.length ? 'buy' : 'none'),
+    noDe: stream.length > 0 && known.length === stream.length && stream.every(p => p.de === false),
+    someDe: stream.some(p => p.de === true)
+  };
+}
+
+async function runCheck(list){
+  if (busy) return;
+  if (!keys.tmdb){ openSettings(); return; }
+  busy = true; saLimit = false;
+  const btn = $('#checkAll'); btn.disabled = true;
+  let i = 0;
+  for (const it of list){
+    i++;
+    $('#checkBar').style.width = Math.round((i-1)/list.length*100) + '%';
+    $('#checkLabel').innerHTML = '<span class="spin"></span>Prüfe ' + i + ' von ' + list.length + ' …';
+    try { await checkItem(it); it.err = null; }
+    catch(e){ it.err = e.message; }
+    save(); render();
+  }
+  if (list.length > 1){ lastAll = Date.now(); LS.set('wl_lastAll', lastAll); }
+  $('#checkBar').style.width = '100%';
+  await new Promise(r => setTimeout(r, 400));
+  $('#checkBar').style.transition = 'none'; $('#checkBar').style.width = '0';
+  requestAnimationFrame(() => $('#checkBar').style.transition = '');
+  btn.disabled = false; $('#checkLabel').textContent = 'Alle prüfen';
+  busy = false; render();
+  $('#notice').innerHTML = saLimit ? '<div class="notice">Die Tonspur-Abfragen für heute sind aufgebraucht. Wo die Titel laufen, wurde trotzdem geprüft – die Tonspuren gibt\'s morgen wieder.</div>' : '';
+}
+
+/* ---------- Suche ---------- */
+let sTimer = null, sToken = 0;
+$('#q').addEventListener('input', e => {
+  clearTimeout(sTimer);
+  const q = e.target.value.trim();
+  if (q.length < 2){ $('#results').innerHTML = ''; return; }
+  sTimer = setTimeout(() => search(q), 350);
+});
+async function search(q){
+  const box = $('#results');
+  if (!keys.tmdb){ box.innerHTML = '<div class="msg">Trag zuerst deinen TMDB-Schlüssel in den Einstellungen ein.</div>'; return; }
+  const tok = ++sToken;
+  box.innerHTML = '<div class="msg">Suche …</div>';
+  try {
+    const d = await tmdb('/search/multi', {query:q, language:'de-DE', include_adult:'false'});
+    if (tok !== sToken) return;
+    const rank = r => isAnime(r.genre_ids, r.original_language, r.origin_country) ? 2 : (r.media_type === 'movie' ? 0 : 1);
+    const res = (d.results||[]).filter(r => r.media_type === 'movie' || r.media_type === 'tv').slice(0, 12)
+      .map((r, i) => ({r, i})).sort((a, b) => rank(a.r) - rank(b.r) || a.i - b.i).map(x => x.r);
+    if (!res.length){ box.innerHTML = '<div class="msg">Nichts gefunden. Versuch den Originaltitel.</div>'; return; }
+    box.innerHTML = res.map((r, n) => {
+      const title = r.title || r.name, year = (r.release_date || r.first_air_date || '').slice(0,4);
+      const have = items.some(x => x.id === r.media_type + '-' + r.id);
+      const orig = (r.original_title || r.original_name);
+      return '<button class="res" data-n="' + n + '">' +
+        (r.poster_path ? '<img alt="" loading="lazy" src="' + IMG + 'w92' + esc(r.poster_path) + '">' : '<span class="noimg"></span>') +
+        '<span><b>' + esc(title) + '</b><small>' + kindOf({type:r.media_type, anime:isAnime(r.genre_ids, r.original_language, r.origin_country)}) + (year ? ' · ' + esc(year) : '') +
+        (orig && orig !== title ? ' · ' + esc(orig) : '') + '</small></span>' +
+        (have ? '<span class="have">schon drin</span>' : '') + '</button>';
+    }).join('');
+    box.querySelectorAll('.res').forEach(b => b.addEventListener('click', () => addItem(res[+b.dataset.n])));
+  } catch(e){ if (tok === sToken) box.innerHTML = '<div class="msg">' + esc(e.message) + '</div>'; }
+}
+function addItem(r){
+  const id = r.media_type + '-' + r.id;
+  $('#results').innerHTML = ''; $('#q').value = '';
+  let it = items.find(x => x.id === id);
+  if (!it){
+    it = {id, tmdb:r.id, type:r.media_type, title:r.title || r.name, orig:r.original_title || r.original_name,
+      year:(r.release_date || r.first_air_date || '').slice(0,4), poster:r.poster_path, added:Date.now(), check:null,
+      anime:isAnime(r.genre_ids, r.original_language, r.origin_country)};
+    items.unshift(it); save();
+  }
+  filter = 'all'; render();
+  runCheck([it]);
+}
+document.addEventListener('click', e => { if (!e.target.closest('.search')) $('#results').innerHTML = ''; });
+
+/* ---------- Anzeige ---------- */
+function chip(p, small){
+  const au = p.de === false ? '<span class="au no">kein DE</span>' : '';
+  const href = p.link ? ' href="' + esc(p.link) + '" target="_blank" rel="noopener"' : '';
+  return '<a class="chip' + (small ? ' small' : '') + '" style="background:' + esc(p.color) + '"' + href + '>' + esc(p.name) + au + '</a>';
+}
+function metaOf(it){
+  const parts = [kindOf(it)];
+  if (it.type === 'movie'){
+    if (it.year) parts.push(it.year);
+    if (it.runtime) parts.push(it.runtime + ' Min.');
+  } else {
+    const a = it.first || it.year;
+    if (a) parts.push(it.ended ? (it.last && it.last !== a ? a + '–' + it.last : a) : (it.first ? 'seit ' + a + ', läuft noch' : a));
+    if (it.seasons) parts.push(it.seasons + (it.seasons === 1 ? ' Staffel' : ' Staffeln'));
+    if (it.episodes) parts.push(it.episodes + ' Folgen');
+  }
+  return parts.map(x => '<span style="white-space:nowrap">' + esc(x) + '</span>').join(' · ');
+}
+function card(it){
+  const c = it.check, s = statusOf(it);
+  let pills = '';
+  if (s.k === 'new') pills = '<span class="pill q">noch nicht geprüft</span>';
+  else if (s.k === 'stream') pills = '<span class="pill ok">Streambar</span>';
+  else if (s.k === 'buy') pills = '<span class="pill mid">Nur leihen oder kaufen</span>';
+  else pills = '<span class="pill no">Nirgends verfügbar</span>';
+  if (s.noDe) pills += '<span class="pill no">Keine deutsche Tonspur</span>';
+
+  let body = '';
+  if (c){
+    if (c.abo.length) body += '<div class="grp"><h4>Im Abo</h4><div class="chips">' + c.abo.map(p => chip(p)).join('') + '</div></div>';
+    if (c.free.length) body += '<div class="grp"><h4>Kostenlos</h4><div class="chips">' + c.free.map(p => chip(p)).join('') + '</div></div>';
+    if (c.buy.length) body += '<div class="grp"><h4>Leihen / Kaufen</h4><div class="chips">' + c.buy.map(p => chip(p, true)).join('') + '</div></div>';
+    if (c.saErr) body += '<div class="err">Tonspur: ' + esc(c.saErr) + '</div>';
+  }
+  if (it.err) body += '<div class="err">' + esc(it.err) + '</div>';
+
+  return '<article class="card">' +
+    (it.poster ? '<img class="poster" alt="" loading="lazy" src="' + IMG + 'w185' + esc(it.poster) + '">' : '<div class="poster"></div>') +
+    '<div><h3 class="ttl">' + esc(it.title) + '</h3>' +
+    '<div class="meta">' + metaOf(it) + '</div>' +
+    '<div class="status">' + pills + '</div>' + body +
+    (c ? '<div class="when">Geprüft: ' + esc(fmt(c.at)) + '</div>' : '') +
+    '<div class="acts"><button data-act="check" data-id="' + esc(it.id) + '">Prüfen</button>' +
+    (c && c.link ? '<button data-act="jw" data-id="' + esc(it.id) + '">Details</button>' : '') +
+    '<button class="del" data-act="del" data-id="' + esc(it.id) + '">Entfernen</button></div></div></article>';
+}
+const FILTERS = [
+  ['all','Alle', () => true],
+  ['stream','Streambar', it => statusOf(it).k === 'stream'],
+  ['none','Nicht im Abo', it => ['buy','none'].includes(statusOf(it).k)],
+  ['node','Ohne Deutsch', it => statusOf(it).noDe]
+];
+function render(){
+  // Einrichtungs-Hinweis
+  $('#setupBox').innerHTML = keys.tmdb ? '' :
+    '<div class="setup"><b>Einmal einrichten</b><p>Damit die App nachschauen kann, braucht sie einen kostenlosen TMDB-Schlüssel. Dauert ca. 5 Minuten.</p><button class="btn pri" id="setupBtn">Anleitung &amp; Schlüssel eintragen</button></div>';
+  const sb = $('#setupBtn'); if (sb) sb.addEventListener('click', openSettings);
+
+  $('#filters').innerHTML = FILTERS.map(([k, label, fn]) =>
+    '<button data-f="' + k + '" class="' + (filter === k ? 'on' : '') + '">' + label + '<span class="n">' + items.filter(fn).length + '</span></button>').join('');
+  $('#filters').querySelectorAll('button').forEach(b => b.addEventListener('click', () => { filter = b.dataset.f; render(); }));
+
+  const fn = FILTERS.find(f => f[0] === filter)[2];
+  const shown = items.filter(fn);
+  $('#list').innerHTML = !items.length
+    ? '<div class="empty"><b>Deine Liste ist leer</b>Such oben nach einer Serie, einem Anime oder Film. Tippen = hinzufügen und sofort prüfen.</div>'
+    : !shown.length ? '<div class="empty">Nichts in diesem Filter.</div>'
+    : shown.map(card).join('');
+
+  $('#checkAll').style.display = items.length ? 'flex' : 'none';
+  $('#lastAll').textContent = lastAll ? 'Zuletzt alle geprüft: ' + fmt(lastAll) : '';
+}
+$('#list').addEventListener('click', e => {
+  const b = e.target.closest('button[data-act]'); if (!b) return;
+  const it = items.find(x => x.id === b.dataset.id); if (!it) return;
+  if (b.dataset.act === 'check'){ if (it.check) it.check.saAt = 0; runCheck([it]); }
+  if (b.dataset.act === 'jw' && it.check?.link) window.open(it.check.link, '_blank', 'noopener');
+  if (b.dataset.act === 'del' && confirm('„' + it.title + '“ entfernen?')){ items = items.filter(x => x !== it); save(); render(); }
+});
+$('#checkAll').addEventListener('click', () => runCheck([...items]));
+
+/* ---------- Einstellungen ---------- */
+const dlg = $('#settings');
+function openSettings(){
+  $('#kTmdb').value = keys.tmdb; $('#kRapid').value = keys.rapid;
+  $('#keyMsg').textContent = ''; $('#backupMsg').textContent = '';
+  $('#backup').value = JSON.stringify(items.map(({id,tmdb,type,title,orig,year,poster,added}) => ({id,tmdb,type,title,orig,year,poster,added})));
+  dlg.showModal();
+}
+$('#openSettings').addEventListener('click', openSettings);
+$('#closeSettings').addEventListener('click', () => dlg.close());
+$('#saveKeys').addEventListener('click', async () => {
+  keys = {tmdb:$('#kTmdb').value.trim(), rapid:$('#kRapid').value.trim()};
+  LS.set('wl_keys', keys);
+  $('#keyMsg').textContent = 'Teste Schlüssel …';
+  try { if (keys.tmdb) await tmdb('/configuration'); $('#keyMsg').textContent = keys.tmdb ? 'Gespeichert – TMDB-Schlüssel funktioniert ✓' : 'Gespeichert.'; }
+  catch(e){ $('#keyMsg').textContent = 'Gespeichert, aber: ' + e.message; }
+  render();
+});
+$('#copyBackup').addEventListener('click', async () => {
+  try { await navigator.clipboard.writeText($('#backup').value); $('#backupMsg').textContent = 'Kopiert ✓'; }
+  catch(e){ $('#backup').select(); $('#backupMsg').textContent = 'Text ist markiert – jetzt lange drücken und kopieren.'; }
+});
+$('#importBackup').addEventListener('click', () => {
+  try {
+    const arr = JSON.parse($('#backup').value);
+    if (!Array.isArray(arr)) throw 0;
+    let n = 0;
+    for (const x of arr){
+      if (!x || !x.tmdb || !['tv','movie'].includes(x.type)) continue;
+      const id = x.type + '-' + x.tmdb;
+      if (items.some(i => i.id === id)) continue;
+      items.push({id, tmdb:+x.tmdb, type:x.type, title:String(x.title||''), orig:String(x.orig||''), year:String(x.year||''), poster:x.poster||null, added:x.added||Date.now(), check:null});
+      n++;
+    }
+    save(); render(); $('#backupMsg').textContent = n + ' Titel hinzugefügt.';
+  } catch(e){ $('#backupMsg').textContent = 'Das sieht nicht nach einer gültigen Liste aus.'; }
+});
+
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+render();
+}
+</script>
+</body>
+</html>
