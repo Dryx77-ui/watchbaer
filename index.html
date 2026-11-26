@@ -20,6 +20,7 @@
 :root{color-scheme:dark;--bg:#101218;--card:#1a1d26;--card2:#232734;--ink:#f3f1ea;--mute:#9aa0ad;--line:#2c3140;--acc:#ffd23f;--ok:#3ecf8e;--bad:#ff5c5c;--warn:#ffb648;--prime:#00A8E1}
 *{box-sizing:border-box;min-width:0}
 html,body{margin:0}
+html{overflow-y:scroll;scrollbar-gutter:stable}
 body{background:var(--bg);color:var(--ink);font:16px/1.5 Inter,system-ui,sans-serif;overflow-x:clip;padding-bottom:40px}
 button,input,textarea{font:inherit;color:inherit}
 button{cursor:pointer}
@@ -57,8 +58,8 @@ h1 span{color:var(--acc)}
 .chiprow{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
 .chiprow::-webkit-scrollbar{display:none}
 .chiprow button{flex:none;min-height:40px;padding:0 14px;border-radius:999px;border:1px solid var(--line);background:var(--card);font-size:14px;font-weight:600}
-.chiprow button.on{background:var(--card2);color:var(--ink);border-color:var(--acc);box-shadow:inset 0 0 0 1px var(--acc)}
-.chiprow .n{opacity:.6;margin-left:5px;font-weight:600}
+.chiprow button.on{background:var(--card2);color:var(--ink);border-color:var(--acc);box-shadow:inset 0 0 0 1.5px var(--acc)}
+.chiprow .n{opacity:.6;margin-left:5px;font-weight:600;display:inline-block;min-width:2ch;text-align:left;font-variant-numeric:tabular-nums}
 .chiprow .n.pos{opacity:1;color:var(--acc)}
 .bar2{margin:10px 0 14px}
 .bar2 .chiprow button{min-height:36px;font-size:13px;padding:0 12px}
@@ -74,11 +75,9 @@ h1 span{color:var(--acc)}
 #list.v3{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .card{position:relative;display:grid;align-content:start;grid-template-columns:72px minmax(0,1fr);gap:14px;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:12px}
 .card .poster{display:block;width:72px;height:108px;border-radius:10px;object-fit:cover;background:#2c3140}
-.head{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+.head{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
 .ttl{font-weight:700;font-size:17px;line-height:1.25;margin:0}
-.when{color:var(--mute);font-size:11px;line-height:1.2;white-space:nowrap}
-#list.v1 .card.hasdate{padding-top:28px}
-#list.v1 .when{position:absolute;top:9px;right:14px}
+.when{flex:none;color:var(--mute);font-size:11px;line-height:1.2;white-space:nowrap}
 .meta{color:var(--mute);font-size:13px;margin-top:2px}
 .status{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 4px}
 .pill{display:inline-flex;align-items:center;font-size:12px;font-weight:700;padding:3px 9px;border-radius:999px;white-space:nowrap}
@@ -92,7 +91,7 @@ h1 span{color:var(--acc)}
 .chip{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px 6px;max-width:100%;text-decoration:none;color:#fff;border-radius:10px;padding:6px 10px;font-size:13px;font-weight:700;min-height:34px;line-height:1.15}
 .chip.small{font-size:12px;padding:4px 8px;min-height:28px}
 .chip .au{flex:none;font-size:10.5px;font-weight:800;padding:2px 5px;border-radius:5px;background:#fff;color:#c4001a;white-space:nowrap}
-.about{display:inline-block;margin-top:10px;border:1px solid var(--line);border-radius:10px;background:var(--card2)}
+.about{display:inline-block;margin-top:16px;border:1px solid var(--line);border-radius:10px;background:var(--card2)}
 .about[open]{display:block}
 .about summary{list-style:none;cursor:pointer;display:flex;gap:10px;justify-content:space-between;align-items:center;padding:6px 12px;font-size:13px;font-weight:600;min-height:36px}
 .about summary::-webkit-details-marker{display:none}
@@ -102,6 +101,7 @@ h1 span{color:var(--acc)}
 .acts{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
 .acts button{min-height:40px;padding:0 10px;border-radius:10px;border:1px solid var(--line);background:var(--card2);font-size:13px;font-weight:600;white-space:nowrap}
 .acts .del{color:var(--bad)}
+.acts .plus{font-size:21px;line-height:0;vertical-align:-2px;margin-right:2px}
 .acts .pri{background:var(--acc);border-color:var(--acc);color:#2a1c00}
 .err{color:var(--bad);font-size:13px;margin-top:6px}
 /* 2 und 3 Spalten: Poster oben */
@@ -116,8 +116,11 @@ h1 span{color:var(--acc)}
 #list.v3 .chip{font-size:11px;padding:4px 6px;min-height:26px;border-radius:8px}
 #list.v3 .chip .au{font-size:9.5px;padding:1px 4px}
 #list.v3 .about summary{font-size:12px;padding:6px 8px}
-#list.v3 .acts{flex-direction:column}
-#list.v3 .acts button{padding:0 6px;font-size:12px;min-height:36px}
+#list.v3 .acts button{padding:0 10px;font-size:12px;min-height:34px}
+@media (max-width:599px){#views button[data-v="3"]{display:none}}
+@media (min-width:600px){#views button[data-v="2"]{display:none}}
+.sortable-ghost{opacity:.35}
+.sortable-chosen .card,.sortable-chosen{box-shadow:0 10px 30px #000a}
 #preview .card{border-color:#ffd23f66;margin-bottom:6px}
 .prevhead{display:flex;justify-content:space-between;align-items:center;margin:14px 0 8px;color:var(--mute);font-size:13px}
 .empty{text-align:center;padding:40px 20px;color:var(--mute);border:2px dashed var(--line);border-radius:18px;grid-column:1/-1}
@@ -231,6 +234,7 @@ footer a{color:var(--mute)}
   </div>
 </dialog>
 
+<script src="sortable.min.js"></script>
 <script>
 {
 const LS = {
@@ -244,6 +248,9 @@ let lastAll = LS.get('wl_lastAll', null);
 let sync = LS.get('wl_sync', {token:'', gist:''});
 let view = LS.get('wl_view', 1);
 let filter = 'all', typeF = 'all', busy = false, saLimit = false, preview = null;
+const phoneMQ = matchMedia('(max-width: 599px)');
+const effView = () => phoneMQ.matches ? (view === 3 ? 2 : view) : (view === 2 ? 3 : view);
+phoneMQ.addEventListener('change', () => render());
 
 // Altdaten aufräumen (große Rohdaten der Tonspur-Abfrage nicht mehr speichern)
 for (const it of items){ if (it.check && it.check.sa){ delete it.check.sa; it.check.saAt = 0; } if (!it.mod) it.mod = it.added || Date.now(); }
@@ -435,6 +442,163 @@ async function runCheck(list){
 }
 
 /* ---------- Suche ---------- */
+const ALIASES = `Sword Art Online|sao
+Attack on Titan|aot|snk|shingeki no kyojin
+One Piece|onepiece
+Naruto Shippuden|shippuden|naruto shippuuden
+Naruto
+Boruto: Naruto Next Generations|boruto
+Dragon Ball Z|dbz
+Dragon Ball Super|dbs
+Dragon Ball Daima|daima
+Jujutsu Kaisen|jjk
+My Hero Academia|mha|bnha|boku no hero academia
+Hunter x Hunter|hxh|hunter hunter
+Fullmetal Alchemist: Brotherhood|fmab|fma|fullmetal alchemist
+Demon Slayer: Kimetsu no Yaiba|kny|kimetsu no yaiba|demon slayer
+One-Punch Man|opm|one punch man
+Chainsaw Man|csm
+Mob Psycho 100|mp100|mob psycho
+Tokyo Ghoul
+Death Note
+Code Geass
+Steins;Gate|steins gate
+Re:ZERO -Starting Life in Another World-|rezero|re zero
+KonoSuba: God's Blessing on This Wonderful World!|konosuba
+Spy x Family|sxf|spy family
+Frieren: Beyond Journey's End|frieren|sousou no frieren
+Solo Leveling|ore dake level up na ken
+Haikyu!!|haikyuu|haikyu
+Black Clover
+Bleach
+Neon Genesis Evangelion|nge|evangelion
+Cowboy Bebop
+Vinland Saga
+Mushoku Tensei: Jobless Reincarnation|mushoku tensei
+That Time I Got Reincarnated as a Slime|tensura|tensei shitara slime
+The Rising of the Shield Hero|shield hero|tate no yuusha
+Overlord
+Classroom of the Elite|cote
+The Promised Neverland|tpn|yakusoku no neverland
+Dr. Stone|dr stone
+Fire Force
+Blue Lock
+Oshi no Ko|oshinoko
+Kaguya-sama: Love Is War|kaguya sama|kaguya
+Your Lie in April|shigatsu wa kimi no uso
+Your Name.|kimi no na wa|your name
+A Silent Voice|koe no katachi
+Spirited Away|chihiros reise|chihiro
+Princess Mononoke|prinzessin mononoke|mononoke
+My Neighbor Totoro|mein nachbar totoro|totoro
+Howl's Moving Castle|das wandelnde schloss|howls moving castle
+JoJo's Bizarre Adventure|jojo|jjba
+Fairy Tail
+Black Butler|kuroshitsuji
+Tokyo Revengers
+Dan Da Dan|dandadan
+Kaiju No. 8|kaiju 8
+The Apothecary Diaries|kusuriya no hitorigoto|apothecary diaries
+Bocchi the Rock!|bocchi
+Cyberpunk: Edgerunners|edgerunners
+Arcane
+Hellsing Ultimate|hellsing
+Berserk
+Detective Conan|case closed|conan
+Pokémon|pokemon
+Yu-Gi-Oh!|yugioh|yu gi oh
+Sailor Moon
+Toradora!|toradora
+Clannad
+Angel Beats!|angel beats
+Akame ga Kill!|akame ga kill
+No Game No Life|ngnl
+Assassination Classroom|ansatsu kyoushitsu
+Food Wars! Shokugeki no Soma|shokugeki no soma|food wars
+Gintama
+Kuroko's Basketball|kuroko no basket|kurokos basketball
+Made in Abyss
+Parasyte: The Maxim|parasyte|kiseijuu
+Erased|boku dake ga inai machi
+Noragami
+Darling in the Franxx|ditf
+Goblin Slayer
+Delicious in Dungeon|dungeon meshi
+Wind Breaker
+Sakamoto Days
+The Eminence in Shadow|eminence in shadow
+Hell's Paradise|jigokuraku
+Mashle|mashle magic and muscles
+Wistoria: Wand and Sword|wistoria
+The Dangers in My Heart|boku no kokoro no yabai yatsu
+Komi Can't Communicate|komi san
+Horimiya
+Toilet-bound Hanako-kun|hanako kun
+Game of Thrones|got
+House of the Dragon|hotd
+The Walking Dead|twd
+Breaking Bad
+Better Call Saul|bcs
+How I Met Your Mother|himym
+The Big Bang Theory|tbbt|big bang theory
+Stranger Things
+The Lord of the Rings: The Rings of Power|rings of power|ringe der macht
+Grey's Anatomy|greys anatomy
+Brooklyn Nine-Nine|b99|brooklyn 99
+The Office
+Haus des Geldes|money heist|la casa de papel
+Peaky Blinders
+The Witcher|witcher
+The Mandalorian|mandalorian
+Squid Game
+Wednesday
+The Last of Us|tlou
+Sons of Anarchy|soa
+Prison Break
+Supernatural|spn
+Two and a Half Men|two and a half men
+Dark
+Babylon Berlin
+How to Sell Drugs Online (Fast)|htsdo
+The Boys
+Rick and Morty|rick morty
+The Simpsons|simpsons|die simpsons
+Family Guy
+South Park
+The Lord of the Rings: The Fellowship of the Ring|lotr|herr der ringe|der herr der ringe
+Harry Potter and the Philosopher's Stone|harry potter|harry potter und der stein der weisen
+Pirates of the Caribbean: The Curse of the Black Pearl|fluch der karibik|potc
+Avengers: Endgame|endgame
+Guardians of the Galaxy|gotg
+The Wolf of Wall Street|wolf of wallstreet
+Interstellar
+Inception`.split('\n').map(l => { const p = l.split('|'); return {t:p[0], n:p.map(x => norm(x))}; });
+function dl(a, b){
+  const m = a.length, n = b.length; if (Math.abs(m - n) > 3) return 9;
+  const d = Array.from({length:m+1}, (_, i) => [i, ...Array(n).fill(0)]);
+  for (let j = 1; j <= n; j++) d[0][j] = j;
+  for (let i = 1; i <= m; i++) for (let j = 1; j <= n; j++){
+    const c = a[i-1] === b[j-1] ? 0 : 1;
+    d[i][j] = Math.min(d[i-1][j] + 1, d[i][j-1] + 1, d[i-1][j-1] + c);
+    if (i > 1 && j > 1 && a[i-1] === b[j-2] && a[i-2] === b[j-1]) d[i][j] = Math.min(d[i][j], d[i-2][j-2] + 1);
+  }
+  return d[m][n];
+}
+function guessTitle(q){
+  const nq = norm(q); if (nq.length < 3) return null;
+  let best = null, bd = 99;
+  for (const e of ALIASES){
+    for (const n of e.n){
+      if (n === nq) return e.t;
+      if (nq.length >= 5){
+        const lim = nq.length <= 8 ? 1 : 2, dd = dl(nq, n);
+        if (dd <= lim && dd < bd){ bd = dd; best = e.t; }
+      }
+    }
+  }
+  return best;
+}
+
 let sTimer = null, sToken = 0, sRes = [];
 $('#q').addEventListener('input', e => {
   clearTimeout(sTimer);
@@ -453,9 +617,14 @@ async function search(q){
   const tok = ++sToken;
   box.innerHTML = '<div class="msg">Suche …</div>';
   try {
-    const d = await tmdb('/search/multi', {query:q, language:'de-DE', include_adult:'false'});
+    const guess = guessTitle(q);
+    const qs = [q]; if (guess && guess.toLowerCase() !== q.trim().toLowerCase()) qs.unshift(guess);
+    const all = await Promise.all(qs.map(x => tmdb('/search/multi', {query:x, language:'de-DE', include_adult:'false'}).catch(() => ({results:[]}))));
     if (tok !== sToken) return;
-    const nq = norm(q);
+    const seen = new Set(), merged = [];
+    for (const d of all) for (const r of (d.results||[])){ const k = r.media_type + r.id; if (!seen.has(k)){ seen.add(k); merged.push(r); } }
+    const d = {results:merged};
+    const nq = norm(guess || q);
     const score = (r, i) => {
       const t = norm(r.title || r.name), o = norm(r.original_title || r.original_name);
       const exact = (t === nq || o === nq) ? 1 : 0, starts = (t.startsWith(nq) || o.startsWith(nq)) ? 1 : 0;
@@ -493,9 +662,9 @@ async function showPreview(it){
 function addItem(it){
   closeSearch();
   if (items.some(x => x.id === it.id)) return;
-  const copy = {...it, added:Date.now(), mod:Date.now()}; delete copy.loading;
+  const copy = {...it, added:Date.now(), mod:Date.now(), pos:-1}; delete copy.loading;
   delete deleted[copy.id];
-  items.unshift(copy); save();
+  items.unshift(copy); normPos(); save();
   if (preview && preview.id === copy.id){ preview = null; renderPreview(); }
   filter = 'all'; render();
   if (!copy.check) runCheck([copy]);
@@ -540,10 +709,10 @@ function card(it, isPrev){
   if (it.overview) body += '<details class="about"><summary>Worum geht\'s?</summary><p>' + esc(it.overview) + '</p></details>';
 
   const acts = isPrev
-    ? '<button class="pri" data-act="add">+ Zur Liste hinzufügen</button><button data-act="close">Schließen</button>'
+    ? '<button class="pri" data-act="add"><span class="plus">+</span> Zur Liste hinzufügen</button><button data-act="close">Schließen</button>'
     : '<button data-act="check" data-id="' + esc(it.id) + '">Prüfen</button><button class="del" data-act="del" data-id="' + esc(it.id) + '">Entfernen</button>';
 
-  return '<article class="card' + (c && !isPrev ? ' hasdate' : '') + '" id="c-' + esc(it.id) + '">' +
+  return '<article class="card' + (c && !isPrev ? ' hasdate' : '') + '" id="c-' + esc(it.id) + '" data-id="' + esc(it.id) + '">' +
     (it.poster ? '<img class="poster" alt="" loading="lazy" src="' + IMG + 'w342' + esc(it.poster) + '">' : '<div class="poster"></div>') +
     '<div><div class="head"><h3 class="ttl">' + esc(it.title) + '</h3>' +
     (c && !isPrev ? '<span class="when">Zuletzt geprüft: ' + esc(fmtDate(c.at)) + '</span>' : '') + '</div>' +
@@ -580,11 +749,11 @@ function render(){
     return '<button data-f="' + k + '" class="' + (filter === k ? 'on' : '') + '">' + label + '<span class="n' + (n ? ' pos' : '') + '">' + n + '</span></button>';
   }).join('');
   $('#types').innerHTML = TYPES.map(([k, label]) => '<button data-t="' + k + '" class="' + (typeF === k ? 'on' : '') + '">' + label + '</button>').join('');
-  document.querySelectorAll('#views button').forEach(b => b.classList.toggle('on', +b.dataset.v === view));
+  document.querySelectorAll('#views button').forEach(b => b.classList.toggle('on', +b.dataset.v === effView()));
 
   const fn = FILTERS.find(f => f[0] === filter)[2];
   const shown = byType.filter(fn);
-  const list = $('#list'); list.className = 'v' + view;
+  const list = $('#list'); list.className = 'v' + effView();
   list.innerHTML = !items.length
     ? '<div class="empty"><b>Deine Liste ist leer</b>Such oben nach einem Film, einer Serie oder einem Anime. Antippen = ansehen, + = zur Liste hinzufügen.</div>'
     : !shown.length ? '<div class="empty">Nichts in dieser Auswahl.</div>'
@@ -625,8 +794,9 @@ function mergeIn(remote){
   }
   for (const [id, ts] of Object.entries(remote.deleted||{})) if (!deleted[id] || ts > deleted[id]) deleted[id] = ts;
   for (const [id, ts] of Object.entries(deleted)){ const it = map.get(id); if (it && (it.mod||0) <= ts) map.delete(id); }
-  items = [...map.values()].sort((a, b) => (b.added||0) - (a.added||0));
+  items = [...map.values()];
   items.forEach(migrate);
+  normPos();
   if (remote.keys){
     if (!keys.tmdb && remote.keys.tmdb) keys.tmdb = remote.keys.tmdb;
     if (!keys.rapid && remote.keys.rapid) keys.rapid = remote.keys.rapid;
@@ -709,6 +879,26 @@ $('#importBackup').addEventListener('click', () => {
 });
 
 for (const it of items) migrate(it);
+function normPos(){
+  items.sort((a, b) => (a.pos ?? 1e12) - (b.pos ?? 1e12) || (b.added||0) - (a.added||0));
+  items.forEach((it, i) => { it.pos = i; });
+}
+normPos();
+if (window.Sortable){
+  Sortable.create($('#list'), {
+    animation:160, delay:250, delayOnTouchOnly:true, touchStartThreshold:6, forceFallback:true, fallbackTolerance:4,
+    draggable:'.card', filter:'a,button,summary,.about p,.empty', preventOnFilter:false,
+    ghostClass:'sortable-ghost',
+    onEnd(){
+      const ids = [...$('#list').querySelectorAll('.card')].map(el => el.dataset.id);
+      const vis = ids.map(id => items.find(i => i.id === id)).filter(Boolean);
+      const slots = vis.map(i => i.pos).sort((a, b) => a - b);
+      const now = Date.now();
+      vis.forEach((it, k) => { if (it.pos !== slots[k]){ it.pos = slots[k]; it.mod = now; } });
+      normPos(); save(); render();
+    }
+  });
+}
 async function fillMissing(){
   if (!keys.tmdb) return;
   for (const it of items){
