@@ -121,9 +121,10 @@ h1 span{color:var(--acc)}
 #list.v3 .acts button{padding:0 10px;font-size:12px;min-height:34px}
 @media (max-width:599px){#views button[data-v="3"]{display:none}}
 @media (min-width:600px){#views button[data-v="2"]{display:none}}
-.card.sortable-ghost{border:1.5px dashed #8b93a7;background:transparent;box-shadow:none}
+.card.sortable-ghost{border-color:transparent;background:transparent;box-shadow:none}
 .card.sortable-ghost>*{opacity:.35}
-.card.sortable-fallback{opacity:.96!important;box-shadow:0 18px 40px #000c;will-change:transform;transition:none}
+.card.sortable-fallback{opacity:1!important;border-color:transparent;box-shadow:0 18px 40px #000c;will-change:transform;transition:none}
+.card.sortable-ghost::after,.card.sortable-fallback::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='100%25' height='100%25' rx='18' ry='18' fill='none' stroke='%239aa1b3' stroke-width='5' stroke-dasharray='14 9' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat}
 body.dragging{user-select:none;-webkit-user-select:none}
 #preview .card{border-color:#ffd23f66;margin-bottom:6px}
 .prevhead{display:flex;justify-content:space-between;align-items:center;margin:14px 0 8px;color:var(--mute);font-size:13px}
@@ -893,7 +894,14 @@ normPos();
 if (window.Sortable){
   Sortable.create($('#list'), {
     animation:150, delay:220, delayOnTouchOnly:true, touchStartThreshold:6, forceFallback:true, fallbackTolerance:4, fallbackOnBody:true,
-    scroll:true, bubbleScroll:true, scrollSensitivity:110, scrollSpeed:18,
+    scroll:true, bubbleScroll:true, scrollSensitivity:150, scrollSpeed:20,
+    scrollFn(ox, oy, ev, touch){
+      if (!oy) return;
+      const y = (touch && touch.clientY) ?? (ev && ev.clientY) ?? 0, H = innerHeight, zone = 150;
+      const p = oy < 0 ? Math.max(0, (zone - y) / zone) : Math.max(0, (y - (H - zone)) / zone);
+      const v = Math.round(8 + 72 * Math.min(1, p) ** 2);
+      (document.scrollingElement || document.documentElement).scrollTop += Math.sign(oy) * v;
+    },
     onStart(){ document.body.classList.add('dragging'); },
     draggable:'.card', filter:'a,button,summary,.about p,.empty', preventOnFilter:false,
     ghostClass:'sortable-ghost',
