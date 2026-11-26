@@ -124,7 +124,8 @@ h1 span{color:var(--acc)}
 .card.sortable-ghost{border-color:transparent;background:transparent;box-shadow:none}
 .card.sortable-ghost>*{opacity:.35}
 .card.sortable-fallback{opacity:1!important;border-color:transparent;box-shadow:0 18px 40px #000c;will-change:transform;transition:none}
-.card.sortable-ghost::after,.card.sortable-fallback::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='100%25' height='100%25' rx='18' ry='18' fill='none' stroke='%239aa1b3' stroke-width='5' stroke-dasharray='14 9' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat}
+.dragframe{position:absolute;top:-1px;left:-1px;pointer-events:none;display:none;z-index:2;overflow:visible}
+.card.sortable-ghost .dragframe,.card.sortable-fallback .dragframe{display:block}
 body.dragging{user-select:none;-webkit-user-select:none}
 #preview .card{border-color:#ffd23f66;margin-bottom:6px}
 .prevhead{display:flex;justify-content:space-between;align-items:center;margin:14px 0 8px;color:var(--mute);font-size:13px}
@@ -891,17 +892,40 @@ function normPos(){
   items.forEach((it, i) => { it.pos = i; });
 }
 normPos();
+// Gestrichelter Rahmen mit gleich abgerundeten Ecken (Striche passend auf jede Kante verteilt)
+function addFrame(el){
+  el.querySelector('.dragframe')?.remove();
+  const w = el.offsetWidth, h = el.offsetHeight;
+  const r = parseFloat(getComputedStyle(el).borderTopLeftRadius) || 16;
+  const sw = 2, d = 8, s = sw / 2, rr = r - s, cd = 10;
+  const edge = (x1, y1, x2, y2) => {
+    const L = Math.hypot(x2 - x1, y2 - y1);
+    const n = Math.max(1, Math.round((L - 6) / (d + 6)));
+    const g = (L - n * d) / (n + 1);
+    return '<line x1="' + x1 + '" y1="' + y1 + '" x2="' + x2 + '" y2="' + y2 + '" stroke-dasharray="' + d + ' ' + (Math.ceil(g * 100) / 100) + '" stroke-dashoffset="' + d + '"/>';
+  };
+  const A = Math.PI * rr / 2, gap = ((A - cd) / 2).toFixed(2);
+  const arc = (x1, y1, x2, y2) => '<path d="M' + x1 + ' ' + y1 + ' A' + rr + ' ' + rr + ' 0 0 1 ' + x2 + ' ' + y2 + '" stroke-dasharray="' + cd + ' ' + (A * 2).toFixed(2) + '" stroke-dashoffset="-' + gap + '"/>';
+  const svg = '<svg class="dragframe" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '" fill="none" stroke="#9aa1b3" stroke-width="' + sw + '" stroke-linecap="round">' +
+    edge(r, s, w - r, s) + edge(w - s, r, w - s, h - r) + edge(w - r, h - s, r, h - s) + edge(s, h - r, s, r) +
+    arc(w - r, s, w - s, r) + arc(w - s, h - r, w - r, h - s) + arc(r, h - s, s, h - r) + arc(s, r, r, s) + '</svg>';
+  el.insertAdjacentHTML('beforeend', svg);
+}
 if (window.Sortable){
   Sortable.create($('#list'), {
-    animation:150, delay:220, delayOnTouchOnly:true, touchStartThreshold:6, forceFallback:true, fallbackTolerance:4, fallbackOnBody:true,
+    animation:150, delay:220, delayOnTouchOnly:true, touchStartThreshold:6, forceFallback:true, fallbackTolerance:4, fallbackOnBody:false,
     scroll:true, bubbleScroll:true, scrollSensitivity:150, scrollSpeed:20,
     scrollFn(ox, oy, ev, touch){
       if (!oy) return;
       const y = (touch && touch.clientY) ?? (ev && ev.clientY) ?? 0, H = innerHeight, zone = 150;
       const p = oy < 0 ? Math.max(0, (zone - y) / zone) : Math.max(0, (y - (H - zone)) / zone);
-      const v = Math.round(8 + 72 * Math.min(1, p) ** 2);
+      const isTouch = (ev && String(ev.type||'').startsWith('touch')) || matchMedia('(pointer: coarse)').matches;
+      const max = isTouch ? 46 : 72;
+      const v = Math.round(8 + max * Math.min(1, p) ** 2);
       (document.scrollingElement || document.documentElement).scrollTop += Math.sign(oy) * v;
     },
+    onChoose(e){ addFrame(e.item); },
+    onUnchoose(e){ setTimeout(() => e.item.querySelector('.dragframe')?.remove(), 0); },
     onStart(){ document.body.classList.add('dragging'); },
     draggable:'.card', filter:'a,button,summary,.about p,.empty', preventOnFilter:false,
     ghostClass:'sortable-ghost',
