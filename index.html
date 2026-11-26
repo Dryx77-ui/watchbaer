@@ -413,7 +413,18 @@ async function checkItem(it){
     const f = saC.filter(o => o.key === key);
     return f.length ? f.some(o => o.de) : null;
   };
-  const fin = m => [...m.values()].map(e => ({...e, de:deOf(e.key), link: e.link || searchUrl(e.brand, it.title, e.name)}));
+  // Kein direkter Link für genau diesen Anbieter? Dann einen direkten Link aus derselben Familie nehmen
+  // (Prime, Prime-Channels und Amazon Video gehören zusammen).
+  const fam = b => (b === 'prime' || b === 'channel' || b === 'amazon') ? 'amazon' : b;
+  const borrow = e => {
+    if (!saC) return null;
+    const same = saC.find(o => o.link && o.key === e.key);
+    if (same) return same.link;
+    const pref = saC.filter(o => o.link && fam(o.brand) === fam(e.brand));
+    const best = pref.find(o => o.cat === (e.key.startsWith('buy-') ? 'buy' : 'abo')) || pref[0];
+    return best ? best.link : null;
+  };
+  const fin = m => [...m.values()].map(e => ({...e, de:deOf(e.key), link: e.link || borrow(e) || searchUrl(e.brand, it.title, e.name)}));
   it.check = {v:2, at:Date.now(), link:wp.link || null, saC, saAt, saErr, abo:fin(abo), buy:fin(buy)};
   it.mod = Date.now();
 }
