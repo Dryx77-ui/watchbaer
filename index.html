@@ -94,7 +94,8 @@ h1 span{color:var(--acc)}
 .chip{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px 6px;max-width:100%;text-decoration:none;color:#fff;border-radius:10px;padding:6px 10px;font-size:13px;font-weight:700;min-height:34px;line-height:1.15}
 .chip.small{font-size:12px;padding:4px 8px;min-height:28px}
 .chip .nm{display:inline-block;max-width:100%}
-.chip .au{flex:none;font-size:10.5px;font-weight:800;padding:2px 5px;border-radius:5px;background:#fff;color:#c4001a;white-space:nowrap}
+.chip .au{flex:none;display:inline-flex;align-items:center;font-size:10.5px;line-height:1;font-weight:800;padding:3px 6px;border-radius:5px;background:#fff;color:#c4001a;white-space:nowrap}
+.chip .au.part{color:#a35a00}
 .about{display:inline-block;margin-top:16px;border:1px solid var(--line);border-radius:10px;background:var(--card2)}
 .about[open]{display:block}
 .about summary{list-style:none;cursor:pointer;display:flex;gap:10px;justify-content:space-between;align-items:center;padding:6px 12px;font-size:13px;font-weight:600;min-height:36px}
@@ -354,7 +355,7 @@ async function tmdb(path, params={}){
   return r.json();
 }
 async function saGet(id){
-  const u = 'https://streaming-availability.p.rapidapi.com/shows/' + encodeURIComponent(id) + '?country=de&output_language=en';
+  const u = 'https://streaming-availability.p.rapidapi.com/shows/' + encodeURIComponent(id) + '?country=de&output_language=en&series_granularity=season';
   const r = await fetch(u, {headers:{'X-RapidAPI-Key':keys.rapid,'X-RapidAPI-Host':'streaming-availability.p.rapidapi.com'}});
   if (r.status === 404) return null;
   if (r.status === 401 || r.status === 403) throw new Error('RapidAPI-Schlüssel ungültig oder Plan nicht abonniert.');
@@ -368,8 +369,20 @@ async function fetchAudio(it, imdb){
   if (imdb) d = await saGet(imdb);
   if (!d) d = await saGet(it.type + '/' + it.tmdb);
   const out = [];
+  // Pro Anbieter: in wie vielen Staffeln gibt es ihn, und in wie vielen davon mit deutscher Tonspur?
+  const seasonDe = {};
+  for (const se of (d?.seasons || [])){
+    const seen = {};
+    for (const o of (se.streamingOptions?.de || [])){
+      const k = (o.service?.id || '') + '|' + (o.addon?.id || o.addon?.name || '');
+      seen[k] = seen[k] || (o.audios||[]).some(isDe);
+    }
+    for (const [k, v] of Object.entries(seen)){ seasonDe[k] = seasonDe[k] || {n:0, de:0}; seasonDe[k].n++; if (v) seasonDe[k].de++; }
+  }
   for (const o of (d?.streamingOptions?.de || [])){
-    const de = (o.audios||[]).some(isDe);
+    let de = (o.audios||[]).some(isDe);
+    const sd = seasonDe[(o.service?.id || '') + '|' + (o.addon?.id || o.addon?.name || '')];
+    if (sd && sd.n > 1){ de = sd.de === sd.n ? true : sd.de === 0 ? false : 'part'; }
     if (o.type === 'subscription' || o.type === 'addon' || o.type === 'free'){
       const inf = o.type === 'addon' ? aboInfo(o.service?.name, o.addon?.name || 'Channel') : aboInfo(o.service?.name || o.service?.id);
       if (inf) out.push({cat:'abo', key:inf.key, name:inf.name, color:inf.color, brand:inf.brand, link:o.link || null, de});
@@ -424,7 +437,10 @@ async function checkItem(it){
   const deOf = key => {
     if (!saC) return null;
     const f = saC.filter(o => o.key === key);
-    return f.length ? f.some(o => o.de) : null;
+    if (!f.length) return null;
+    if (f.some(o => o.de === true)) return true;
+    if (f.some(o => o.de === 'part')) return 'part';
+    return false;
   };
   const fin = m => [...m.values()].map(e => ({...e, de:deOf(e.key), link: e.link || searchUrl(e.brand, it.title, e.name)}));
   it.check = {v:2, at:Date.now(), link:wp.link || null, saC, saAt, saErr, abo:fin(abo), buy:fin(buy)};
@@ -705,7 +721,7 @@ function metaOf(it){
   return parts.map(x => '<span style="white-space:nowrap">' + esc(x) + '</span>').join(' · ');
 }
 function chip(p, small){
-  const au = p.de === false ? '<span class="au">kein DE</span>' : '';
+  const au = p.de === false ? '<span class="au">kein DE</span>' : p.de === 'part' ? '<span class="au part">teilweise DE</span>' : '';
   const href = p.link ? ' href="' + esc(p.link) + '" target="_blank" rel="noopener"' : '';
   return '<a class="chip' + (small ? ' small' : '') + '" style="background:' + esc(p.color) + '"' + href + '><span class="nm">' + esc(p.name) + '</span>' + au + '</a>';
 }
