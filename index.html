@@ -777,7 +777,7 @@ function card(it, isPrev){
 
   return '<article class="card' + (c && !isPrev ? ' hasdate' : '') + '" id="c-' + esc(it.id) + '" data-id="' + esc(it.id) + '">' +
     (it.poster ? '<img class="poster" alt="" draggable="false" loading="lazy" src="' + IMG + 'w342' + esc(it.poster) + '">' : '<div class="poster"></div>') +
-    '<div><div class="head">' + (c && !isPrev ? '<span class="when">Zuletzt aktualisiert:<br>' + esc(fmtDate(c.at)) + '</span>' : '') +
+    '<div><div class="head">' + (c && !isPrev ? '<span class="when">Zuletzt aktualisiert:<br> ' + esc(fmtDate(c.at)) + '</span>' : '') +
     '<h3 class="ttl">' + esc(it.title) + '</h3></div>' +
     '<div class="meta">' + metaOf(it) + '</div>' +
     '<div class="status">' + pills + '</div>' + body +
