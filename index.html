@@ -50,7 +50,7 @@ h1 span{color:var(--acc)}
 .res .add{flex:none;margin-right:10px;min-width:44px;min-height:44px;border-radius:12px;border:1px solid var(--line);background:var(--card);font-size:22px;font-weight:700;color:var(--acc)}
 .res .have{flex:none;margin-right:14px;font-size:13px;color:var(--ok)}
 .msg{padding:14px;color:var(--mute);font-size:14px}
-.checkall{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;gap:10px;width:250px;padding:0 16px;font-variant-numeric:tabular-nums;margin:16px auto 10px;min-height:52px;border:0;border-radius:14px;background:radial-gradient(circle at 50% 40%,#f5d98f,#e9961d 80%);color:#3a2200;font-weight:700;font-size:17px;transition:transform .12s ease}
+.checkall{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;gap:10px;width:290px;max-width:100%;padding:0 16px;font-variant-numeric:tabular-nums;margin:16px auto 10px;min-height:52px;border:0;border-radius:14px;background:radial-gradient(circle at 50% 40%,#f5d98f,#e9961d 80%);color:#3a2200;font-weight:700;font-size:17px;transition:transform .12s ease}
 .checkall:active{transform:scale(.97)}
 .checkall>span{position:relative;z-index:1;display:inline-flex;align-items:center;gap:10px}
 .checkall::after{content:"";position:absolute;top:0;bottom:0;width:40%;left:-60%;background:linear-gradient(100deg,transparent,#ffffffcc,transparent);animation:shine 5s ease-in-out 1s infinite;z-index:1;pointer-events:none}
@@ -187,7 +187,7 @@ footer a{color:var(--mute)}
 
   <div id="preview"></div>
 
-  <button class="checkall" id="checkAll"><span><span class="spin" id="checkSpin" hidden></span><span id="checkLabel">Alle prüfen</span></span></button>
+  <button class="checkall" id="checkAll"><span><span class="spin" id="checkSpin" hidden></span><span id="checkLabel">Liste aktualisieren</span></span></button>
   <div id="notice"></div>
   <div class="sub"><span id="lastAll"></span>
     <div class="views" id="views">
@@ -465,13 +465,13 @@ async function runCheck(list){
   let i = 0;
   for (const it of list){
     i++;
-    $('#checkLabel').textContent = 'Prüfe ' + i + ' von ' + list.length + ' …';
+    $('#checkLabel').textContent = 'Aktualisiere ' + i + ' von ' + list.length + ' …';
     try { await checkItem(it); it.err = null; }
     catch(e){ it.err = e.message; }
     LS.set('wl_items', items); render();
   }
   if (list.length > 1){ lastAll = Date.now(); LS.set('wl_lastAll', lastAll); }
-  btn.disabled = false; $('#checkSpin').hidden = true; $('#checkLabel').textContent = 'Alle prüfen';
+  btn.disabled = false; $('#checkSpin').hidden = true; $('#checkLabel').textContent = 'Liste aktualisieren';
   busy = false; save(); render();
   $('#notice').innerHTML = saLimit ? limitMsg() : '';
 }
@@ -739,8 +739,8 @@ function chipList(it, list, small){
 function card(it, isPrev){
   const c = it.check, s = statusOf(it);
   let pills = '';
-  if (it.loading) pills = '<span class="pill q">wird geprüft …</span>';
-  else if (s.k === 'new') pills = '<span class="pill q">noch nicht geprüft</span>';
+  if (it.loading) pills = '<span class="pill q">wird aktualisiert …</span>';
+  else if (s.k === 'new') pills = '<span class="pill q">noch nicht aktualisiert</span>';
   else if (s.k === 'stream') pills = '<span class="pill ok">Streambar</span>';
   else if (s.k === 'buy') pills = '<span class="pill mid">Nur leihen oder kaufen</span>';
   else pills = '<span class="pill no">Aktuell nicht verfügbar</span>';
@@ -763,7 +763,7 @@ function card(it, isPrev){
   return '<article class="card' + (c && !isPrev ? ' hasdate' : '') + '" id="c-' + esc(it.id) + '" data-id="' + esc(it.id) + '">' +
     (it.poster ? '<img class="poster" alt="" draggable="false" loading="lazy" src="' + IMG + 'w342' + esc(it.poster) + '">' : '<div class="poster"></div>') +
     '<div><div class="head"><h3 class="ttl">' + esc(it.title) + '</h3>' +
-    (c && !isPrev ? '<span class="when">Zuletzt geprüft: ' + esc(fmtDate(c.at)) + '</span>' : '') + '</div>' +
+    (c && !isPrev ? '<span class="when">Zuletzt aktualisiert: ' + esc(fmtDate(c.at)) + '</span>' : '') + '</div>' +
     '<div class="meta">' + metaOf(it) + '</div>' +
     '<div class="status">' + pills + '</div>' + body +
     '<div class="foot">' + foot + '<div class="acts">' + acts + '</div></div></div></article>';
@@ -834,7 +834,7 @@ function render(){
 
   $('#checkAll').style.display = items.length ? 'flex' : 'none';
   requestAnimationFrame(() => fitChips());
-  $('#lastAll').textContent = lastAll ? 'Zuletzt alle geprüft: ' + fmtDate(lastAll) : '';
+  $('#lastAll').textContent = lastAll ? 'Liste zuletzt aktualisiert: ' + fmtDate(lastAll) : '';
 }
 $('#filters').addEventListener('click', e => { const b = e.target.closest('button'); if (b){ filter = b.dataset.f; render(); } });
 $('#types').addEventListener('click', e => { const b = e.target.closest('button'); if (b){ typeF = typeF === b.dataset.t ? 'all' : b.dataset.t; render(); } });
@@ -842,7 +842,6 @@ $('#views').addEventListener('click', e => { const b = e.target.closest('button'
 $('#list').addEventListener('click', e => {
   const b = e.target.closest('button[data-act]'); if (!b) return;
   const it = items.find(x => x.id === b.dataset.id); if (!it) return;
-  if (b.dataset.act === 'check'){ if (it.check) it.check.saAt = 0; runCheck([it]); }
   if (b.dataset.act === 'del'){
     const idx = items.indexOf(it);
     items = items.filter(x => x !== it); deleted[it.id] = Date.now(); save(); render();
