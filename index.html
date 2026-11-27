@@ -353,6 +353,8 @@ async function tmdb(path, params={}){
 async function saGet(id){
   const u = 'https://streaming-availability.p.rapidapi.com/shows/' + encodeURIComponent(id) + '?country=de&output_language=en';
   const r = await fetch(u, {headers:{'X-RapidAPI-Key':keys.rapid,'X-RapidAPI-Host':'streaming-availability.p.rapidapi.com'}});
+  const rs = +(r.headers.get('x-ratelimit-requests-reset') || 0);
+  if (rs > 0) LS.set('wl_reset', Date.now() + rs * 1000);
   if (r.status === 404) return null;
   if (r.status === 401 || r.status === 403) throw new Error('RapidAPI-Schlüssel ungültig oder Plan nicht abonniert.');
   if (r.status === 429){ const e = new Error('LIMIT'); e.code = 'LIMIT'; throw e; }
@@ -454,7 +456,7 @@ async function runCheck(list){
   if (list.length > 1){ lastAll = Date.now(); LS.set('wl_lastAll', lastAll); }
   btn.disabled = false; $('#checkSpin').hidden = true; $('#checkLabel').textContent = 'Alle prüfen';
   busy = false; save(); render();
-  $('#notice').innerHTML = saLimit ? LIMIT_MSG : '';
+  $('#notice').innerHTML = saLimit ? limitMsg() : '';
 }
 
 /* ---------- Suche ---------- */
@@ -918,8 +920,17 @@ $('#saveSync').addEventListener('click', () => {
   if (t) syncNow(); else setSyncMsg('Sync ausgeschaltet.');
 });
 $('#syncNow').addEventListener('click', () => syncNow());
-const LIMIT_MSG = '<div class="notice">Tonspur-Prüfung für heute nicht mehr möglich.</div>';
-$('#testLimit').addEventListener('click', () => { dlg.close(); $('#notice').innerHTML = LIMIT_MSG; $('#notice').scrollIntoView({behavior:'smooth', block:'center'}); });
+function limitMsg(){
+  let t = LS.get('wl_reset', 0), when = 'ab morgen';
+  if (t){
+    while (t < Date.now()) t += 864e5;
+    const d = new Date(t), today = new Date();
+    const hm = d.toLocaleTimeString('de-DE', {hour:'2-digit', minute:'2-digit'});
+    when = (d.toDateString() === today.toDateString() ? 'heute ab ' : 'ab morgen, ') + hm + ' Uhr';
+  }
+  return '<div class="notice">Tonspur-Prüfung erst wieder ' + esc(when) + ' verfügbar.</div>';
+}
+$('#testLimit').addEventListener('click', () => { dlg.close(); $('#notice').innerHTML = limitMsg(); $('#notice').scrollIntoView({behavior:'smooth', block:'center'}); });
 $('#copyBackup').addEventListener('click', async () => {
   try { await navigator.clipboard.writeText($('#backup').value); $('#backupMsg').textContent = 'Kopiert ✓'; }
   catch(e){ $('#backup').select(); $('#backupMsg').textContent = 'Text ist markiert – jetzt lange drücken und kopieren.'; }
