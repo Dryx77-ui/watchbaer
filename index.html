@@ -758,7 +758,7 @@ function card(it, isPrev){
 
   const acts = isPrev
     ? '<button class="pri" data-act="add"><span class="plus">+</span> Zur Liste hinzufügen</button><button data-act="close">Schließen</button>'
-    : '<button data-act="check" data-id="' + esc(it.id) + '">Prüfen</button><button class="del" data-act="del" data-id="' + esc(it.id) + '">Entfernen</button>';
+    : '<button class="del" data-act="del" data-id="' + esc(it.id) + '">Entfernen</button>';
 
   return '<article class="card' + (c && !isPrev ? ' hasdate' : '') + '" id="c-' + esc(it.id) + '" data-id="' + esc(it.id) + '">' +
     (it.poster ? '<img class="poster" alt="" draggable="false" loading="lazy" src="' + IMG + 'w342' + esc(it.poster) + '">' : '<div class="poster"></div>') +
