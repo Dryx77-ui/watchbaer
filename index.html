@@ -90,6 +90,7 @@ h1 span{color:var(--acc)}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .chip{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px 6px;max-width:100%;text-decoration:none;color:#fff;border-radius:10px;padding:6px 10px;font-size:13px;font-weight:700;min-height:34px;line-height:1.15}
 .chip.small{font-size:12px;padding:4px 8px;min-height:28px}
+.chip .nm{display:inline-block;max-width:100%}
 .chip .au{flex:none;font-size:10.5px;font-weight:800;padding:2px 5px;border-radius:5px;background:#fff;color:#c4001a;white-space:nowrap}
 .about{display:inline-block;margin-top:16px;border:1px solid var(--line);border-radius:10px;background:var(--card2)}
 .about[open]{display:block}
@@ -126,7 +127,8 @@ h1 span{color:var(--acc)}
 .card.sortable-fallback{opacity:1!important;border-color:transparent;box-shadow:0 18px 40px #000c;will-change:transform;transition:none}
 .dragframe{position:absolute;top:-1px;left:-1px;pointer-events:none;display:none;z-index:2;overflow:visible}
 .card.sortable-ghost .dragframe,.card.sortable-fallback .dragframe,.card.ready .dragframe{display:block}
-.card.ready{transform:scale(.985);transition:transform .15s}
+.card.ready:not(.sortable-fallback):not(.sortable-ghost){transform:scale(.985);transition:transform .15s}
+.card.sortable-fallback{transition:none!important}
 body.dragging{user-select:none;-webkit-user-select:none}
 #preview .card{border-color:#ffd23f66;margin-bottom:6px}
 .prevhead{display:flex;justify-content:space-between;align-items:center;margin:14px 0 8px;color:var(--mute);font-size:13px}
@@ -236,6 +238,7 @@ footer a{color:var(--mute)}
       <li><b>Pricing</b> → den kostenlosen Plan „Basic“ abonnieren.</li>
       <li>Bei „Endpoints“ steht <b>X-RapidAPI-Key</b> – kopieren und oben einfügen.</li>
     </ol>
+    <div class="row"><button class="btn" id="testLimit">Limit-Meldung testen</button></div>
     <p class="note">Gratis-Plan: 100 Abfragen pro Tag, eine pro Titel. Die App fragt Tonspuren pro Titel höchstens alle 12 Stunden neu ab und meldet sich, falls das Limit erreicht ist.</p>
 
     <h3>Sicherung deiner Liste</h3>
@@ -451,7 +454,7 @@ async function runCheck(list){
   if (list.length > 1){ lastAll = Date.now(); LS.set('wl_lastAll', lastAll); }
   btn.disabled = false; $('#checkSpin').hidden = true; $('#checkLabel').textContent = 'Alle prüfen';
   busy = false; save(); render();
-  $('#notice').innerHTML = saLimit ? '<div class="notice">Die Tonspur-Abfragen für heute sind aufgebraucht. Wo die Titel laufen, wurde trotzdem geprüft – die Tonspuren gibt\'s morgen wieder.</div>' : '';
+  $('#notice').innerHTML = saLimit ? LIMIT_MSG : '';
 }
 
 /* ---------- Suche ---------- */
@@ -701,7 +704,7 @@ function metaOf(it){
 function chip(p, small){
   const au = p.de === false ? '<span class="au">kein DE</span>' : '';
   const href = p.link ? ' href="' + esc(p.link) + '" target="_blank" rel="noopener"' : '';
-  return '<a class="chip' + (small ? ' small' : '') + '" style="background:' + esc(p.color) + '"' + href + '>' + esc(p.name) + au + '</a>';
+  return '<a class="chip' + (small ? ' small' : '') + '" style="background:' + esc(p.color) + '"' + href + '><span class="nm">' + esc(p.name) + '</span>' + au + '</a>';
 }
 const MAIN = new Set(['netflix','disney','prime','amazon','channel','crunchyroll']);
 function chipList(it, list, small){
@@ -756,9 +759,23 @@ function toast(text, action, fn){
   if (btn) btn.onclick = () => { fn(); t.className = ''; clearTimeout(toastTimer); };
   clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.className = ''; }, 5000);
 }
+function fitChips(root){
+  (root || document).querySelectorAll('.chip .nm').forEach(el => {
+    el.style.width = '';
+    const rg = document.createRange(); rg.selectNodeContents(el);
+    const rs = [...rg.getClientRects()];
+    if (rs.length > 1){
+      const w = Math.max(...rs.map(x => x.right)) - Math.min(...rs.map(x => x.left));
+      el.style.width = Math.ceil(w + 1) + 'px';
+    }
+  });
+}
+let fitTimer = null;
+addEventListener('resize', () => { clearTimeout(fitTimer); fitTimer = setTimeout(() => fitChips(), 120); });
 function renderPreview(){
   const box = $('#preview');
   if (!preview){ box.innerHTML = ''; return; }
+  requestAnimationFrame(() => fitChips(box));
   box.innerHTML = '<div class="prevhead"><span>Suchergebnis – noch nicht in deiner Liste</span></div>' + card(preview, true);
 }
 $('#preview').addEventListener('click', e => {
@@ -797,6 +814,7 @@ function render(){
     : shown.map(it => card(it)).join('');
 
   $('#checkAll').style.display = items.length ? 'flex' : 'none';
+  requestAnimationFrame(() => fitChips());
   $('#lastAll').textContent = lastAll ? 'Zuletzt alle geprüft: ' + fmtDate(lastAll) : '';
 }
 $('#filters').addEventListener('click', e => { const b = e.target.closest('button'); if (b){ filter = b.dataset.f; render(); } });
@@ -900,6 +918,8 @@ $('#saveSync').addEventListener('click', () => {
   if (t) syncNow(); else setSyncMsg('Sync ausgeschaltet.');
 });
 $('#syncNow').addEventListener('click', () => syncNow());
+const LIMIT_MSG = '<div class="notice">Die Tonspur-Abfragen für heute sind aufgebraucht. Wo die Titel laufen, wurde trotzdem geprüft – die Tonspuren gibt\'s morgen wieder.</div>';
+$('#testLimit').addEventListener('click', () => { dlg.close(); $('#notice').innerHTML = LIMIT_MSG; $('#notice').scrollIntoView({behavior:'smooth', block:'center'}); });
 $('#copyBackup').addEventListener('click', async () => {
   try { await navigator.clipboard.writeText($('#backup').value); $('#backupMsg').textContent = 'Kopiert ✓'; }
   catch(e){ $('#backup').select(); $('#backupMsg').textContent = 'Text ist markiert – jetzt lange drücken und kopieren.'; }
@@ -967,7 +987,7 @@ if (window.Sortable){
     },
     onChoose(e){ addFrame(e.item); if (lastTouch){ e.item.classList.add('ready'); try { navigator.vibrate && navigator.vibrate(12); } catch(_){} } },
     onUnchoose(e){ e.item.classList.remove('ready'); setTimeout(() => e.item.querySelector('.dragframe')?.remove(), 0); },
-    onStart(){ document.body.classList.add('dragging'); },
+    onStart(e){ document.body.classList.add('dragging'); e.item.classList.remove('ready'); document.querySelectorAll('.sortable-fallback').forEach(c => c.classList.remove('ready')); },
     draggable:'.card', filter:'a,button,summary,.about p,.empty', preventOnFilter:false,
     ghostClass:'sortable-ghost',
     onEnd(){
